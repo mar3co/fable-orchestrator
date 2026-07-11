@@ -5,7 +5,7 @@ description: Routing doctrine for the architect-as-orchestrator pattern — how 
 
 # Orchestration — the architect's routing doctrine
 
-The session is the architect: it owns requirements, architecture, decomposition, specs, routing, and verification. It should almost never type implementation code — the one exception is trivial edits (few-line fixes, renames, doc/comment tweaks), which stay with the architect inline; everything else is delegated. Implementation routing follows the session's configured mode — **grok** (fixed, the unconfigured default), **codex** (fixed), or **mix**, where the architect routes each task by kind (see "Choosing your implementation routing"). The unconfigured default is fixed-grok: cheap typing with assurance from verification and the review tiers, and a fixed binding cannot drift.
+The session is the architect: it owns requirements, architecture, decomposition, specs, routing, and verification. It should almost never type implementation code — the one exception is trivial edits (few-line fixes, renames, doc/comment tweaks), which stay with the architect inline; everything else is delegated. The bright line: if it needs a verification command to trust, it isn't trivial. Implementation routing follows the session's configured mode — **grok** (fixed, the unconfigured default), **codex** (fixed), or **mix**, where the architect routes each task by kind (see "Choosing your implementation routing"). The unconfigured default is fixed-grok: cheap typing with assurance from verification and the review tiers, and a fixed binding cannot drift.
 
 ## Cost discipline — the prime directive
 
@@ -25,7 +25,8 @@ What stays with the architect regardless of cost: decomposition, interface desig
 |---|---|---|---|
 | Implementation | Grok 4.5 | `grok-implementer` agent | All implementation in **grok** mode (the unconfigured default). In **mix** mode: mechanical work the spec fully determines — wiring, CRUD, boilerplate, make-the-types-match. Requires the [Grok CLI](https://x.ai/cli). |
 | Implementation | GPT-5.6 Sol (high reasoning) | `codex-implementer` agent | All implementation in **codex** mode. In **mix** mode: correctness-critical work — concurrency, auth/security, migrations, subtle state, anything the spec can't fully pin. Requires the codex CLI. |
-| Research / review | Grok 4.5 | `grok-researcher` / `grok-reviewer` agents | Not implementation lanes: breadth-first live-web/X research (`grok-researcher`), or a cold second review lens on a diff (`grok-reviewer`). Codebase lookups (where-is-X-defined, list-callers, inventories) go to a cheap in-process read-only agent instead — faster and more accurate for file:line work than an external CLI hop. |
+| Research | Grok 4.5 | `grok-researcher` agent | Not an implementation lane: breadth-first live-web/X research. Codebase lookups (where-is-X-defined, list-callers, inventories) go to a cheap in-process read-only agent instead — faster and more accurate for file:line work than an external CLI hop. |
+| Review | Grok 4.5 / GPT-5.6 Sol | `grok-reviewer` / `codex-reviewer` agents | Cold second review lens on a behavior-bearing diff — pick the family the implementer ISN'T: grok implemented → `codex-reviewer`; codex implemented → `grok-reviewer`; a Claude fallback lane implemented → either. |
 | Judgment | Fable 5 | `fable-advisor` agent | Not an implementation lane. See "Commitment boundaries" below. |
 
 The session may drive the `grok` CLI directly only for short single-answer web lookups; anything with long output (breadth research, review) runs inside the researcher/reviewer lanes so raw transcripts never enter the architect's context.
@@ -58,7 +59,7 @@ Implementers share none of your conversation context. Every delegation prompt ca
 2. **Files** — exact paths to create or modify
 3. **Interfaces** — signatures, types, or API shapes the code must match
 4. **Constraints** — project conventions, things not to touch
-5. **Verification** — the command(s) that prove it works
+5. **Verification** — the command(s) that prove it works: the smallest bundle that exercises the change, not the full suite (full suites run at integration points, and verification may legitimately run twice — producer, then wrapper — so its cost matters)
 
 Estimate the task's wall clock honestly in every spec and include a `TIMEOUT: <seconds>` line whenever the estimate differs meaningfully from the implementation lanes' 1800-second default (the research/review lanes default to 600). An undersized budget kills a legitimate run mid-flight; an oversized one delays detection of a genuinely hung lane — accuracy beats generosity in both directions.
 
@@ -83,11 +84,11 @@ Pass it the decision, the constraints, the options considered, the exact file pa
 Verification (below) is not review. Verification asks "did it do what the spec said, and do the checks pass?" Cold review asks "what is wrong that the author — and the architect's own framing — didn't see?" The architect reading a lane's diff is verification with cross-vendor eyes, not cold review: the architect wrote the spec and is primed by it. Tier by the diff:
 
 - **Mechanical diffs** (renames, literal moves, no behavior change): verification only.
-- **Behavior-bearing diffs**: add one cold `grok-reviewer` pass — diff only, no intent framing.
+- **Behavior-bearing diffs**: add one cold review pass — diff only, no intent framing — from a model family DIFFERENT from the implementer's: grok implemented → `codex-reviewer`; codex implemented → `grok-reviewer`; a Claude fallback lane implemented → either. A reviewer from the author's own family shares the author's blind spots and is not a second lens.
 - **Security / auth / concurrency / migration paths**: additionally have a strong Claude model read every error / nil / empty / timeout branch for silent failure (a read-only session pass or an Opus subagent). Omission-type misses never appear in any reviewer's report, so this tier is about completeness, not a second opinion.
 
 If in doubt whether a diff is mechanical, it isn't.
 
 ## Verification
 
-Reports are claims, not evidence. Before accepting any lane's work: read the diff, and re-run the verification command (or spot-check its quoted output against the working tree). "Should work", "tests should pass", or a report with no command output means the task is not done. A lane that reports a spec gap gets a corrected spec, not a "use your judgment".
+Reports are claims, not evidence — but machine-captured logs are. Exactly one authoritative verification run per task, not three: the wrapper accepts the CLI's captured log when it shows the verification command executing and passing as the run's final act, and re-runs the command itself otherwise (its report says which). The architect reads the diff and spot-checks the report's evidence; full re-runs happen at integration points (merging, declaring a deliverable done), not after every lane report. "Should work", "tests should pass", or a report with no execution evidence means the task is not done. A lane that reports a spec gap gets a corrected spec, not a "use your judgment".

@@ -80,7 +80,7 @@ What the supervisor enforces for this lane (non-negotiable):
 | `--cwd "$(pwd)"` + `--output-format plain` | Deterministic working root; final message captured for the report. |
 | Detached launch + watchdog | Survives the harness's 10-minute foreground cap; the wall clock holds even if this agent dies. |
 
-4. **Verify independently.** Read the diff (`git diff` / `git status`), run the spec's verification command yourself, and read grok's final message from `FINAL`. Grok's claim of success is not evidence; your re-run is. (`acceptEdits` may have blocked grok from running the verification itself — your re-run covers that by design.)
+4. **Verify from evidence; re-run only when needed.** Read the diff (`git diff` / `git status`) and grok's output in `FINAL`. `acceptEdits` usually blocks grok from running commands, so expect to run the spec's verification yourself — skip the re-run only if `FINAL` shows the command genuinely executed and passed as the run's final act (machine-captured output, not narrative), with no edits after it. Grok's *claim* of success is never evidence — captured execution or your own re-run is. Say in the report which one you have.
 
 ## What you return
 

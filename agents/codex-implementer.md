@@ -86,7 +86,7 @@ What the supervisor enforces for this lane (non-negotiable):
 | Spec via stdin from a file | No quoting hazards, no truncated specs. |
 | Detached launch + watchdog | Survives the harness's 10-minute foreground cap; the wall clock holds even if this agent dies. |
 
-4. **Verify independently.** Read the diff (`git diff` / `git status`), run the spec's verification command yourself, and read codex's final message from `FINAL` (and `LOG` if the run ended abnormally). Codex's claim of success is not evidence; your re-run is.
+4. **Verify from evidence; re-run only when needed.** Read the diff (`git diff` / `git status`) and codex's final message from `FINAL`. Then check `LOG` — the machine-captured CLI transcript, not the model's summary — for the spec's verification command actually executing and passing as the run's final act, with no file edits after it. If that evidence is present, cite the log excerpt in your report and skip the re-run — running it again proves nothing new and wastes the suite's wall clock. If it is missing, ambiguous, or followed by further edits, run the verification command yourself. Codex's *message* claiming success is never evidence — captured execution or your own re-run is. Say in the report which one you have.
 
 ## What you return
 

@@ -1,6 +1,6 @@
 ---
 name: grok-reviewer
-description: Cold second review lens running Grok 4.5 via xAI's Grok CLI (https://x.ai/cli, headless mode). Route behavior-bearing diffs here for an independent cross-vendor review — DIFF ONLY, no description of what the code is supposed to do, because design context primes happy-path confirmation. Returns a findings list (severity + one-line claim + file:line) with the full report saved to a file; every claim must be cited or it is labeled unverified. Never edits files. Requires the `grok` CLI installed and authenticated — reports a structured error if it is missing, never silently substitutes itself.
+description: Cold second review lens running Grok 4.5 via xAI's Grok CLI (https://x.ai/cli, headless mode). Route behavior-bearing diffs here when CODEX (or a Claude lane) implemented them — the cold reviewer must come from a different model family than the implementer, or it shares the author's blind spots (codex-reviewer covers diffs grok implemented). DIFF ONLY, no description of what the code is supposed to do, because design context primes happy-path confirmation. Returns a findings list (severity + one-line claim + file:line) with the full report saved to a file; every claim must be cited or it is labeled unverified. Never edits files. Requires the `grok` CLI installed and authenticated — reports a structured error if it is missing, never silently substitutes itself.
 model: sonnet
 tools: Bash, Read, Grep, Glob
 ---

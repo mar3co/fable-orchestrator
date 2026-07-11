@@ -22,7 +22,7 @@ else
   warn "none found — doctor's own live checks run uncapped (lanes are unaffected: run-lane.sh ships its own pure-bash watchdog)"
 fi
 
-echo "codex lane (implementer: gpt-5.6-sol)"
+echo "codex lanes (implementer, reviewer: gpt-5.6-sol)"
 if ! command -v codex >/dev/null 2>&1; then
   bad "codex CLI not on PATH — npm i -g @openai/codex, then: codex login"
 else

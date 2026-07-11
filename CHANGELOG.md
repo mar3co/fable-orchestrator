@@ -2,6 +2,20 @@
 
 **fable-orchestrator**, originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0 and independently maintained since 2026-07-10 (detached from the fork network). Plugin updates are version-gated — every change ships with a version bump. Entries 3.1.1–3.5.0 below predate the rename, when this project was the fable-advisor fork; 3.5.0 was never published under that name.
 
+## 1.1.0 — 2026-07-10
+
+Partly adopted from a second external Grok 4.5 review; the reviewer-family rule came from the maintainer.
+
+- **`codex-reviewer` agent + cross-family review rule**: the cold reviewer must come from a different model family than the implementer — under the grok default, grok-reviewer reviewing grok's diffs was the same family grading its own homework. Grok implemented → `codex-reviewer` (GPT-5.6 Sol, `--sandbox read-only`); codex or a Claude fallback implemented → `grok-reviewer`. Skill review tiers, lanes tables, flowchart, and agent descriptions updated.
+- **`run-lane.sh` process-group hardening**: `set -m` puts each lane in its own process group and every kill targets the group (`kill -- -PID`) — killing only the parent left CLI child workers as orphans still writing to the tree. The watchdog now polls and self-terminates when the lane exits naturally, closing a recycled-PID group-kill hazard the old full-budget sleep carried.
+- **`scripts/test-run-lane.sh`**: no-API smoke test (PATH-shimmed fake CLI) asserting group-kill on reap, natural-exit detection with watchdog self-termination, and budget kill with logging.
+- `fable-advisor` agent now enforces the evidence rule itself: it declines to rule when the decisive evidence wasn't provided, instead of guessing.
+- Trivial-edit bright line in the skill: if it needs a verification command to trust, it isn't trivial.
+- Honesty fixes: FAQ no longer claims every diff gets cross-vendor review "for free" (verification is automatic; cold review is the explicit tier step); intro says assurance comes from verification plus tiered review; flowchart shows the mirrored codex-mode fallback and the reviewer-family branch.
+- **Conditional wrapper verification** — one authoritative run per task, not a blind re-run: the wrapper accepts the CLI's machine-captured log when it shows the verification command passing as the run's final act (with no edits after), and re-runs only otherwise. Grok lanes usually still re-run (acceptEdits blocks commands); codex lanes, which run tests in their dev loop, usually don't need to. Spec contract now asks for the smallest verification bundle that proves the change.
+- README reworked wholesale for readability: consolidated rules section, deduplicated mode/fallback prose, permissions table covers all producer roles.
+- Marketplace/plugin descriptions updated (modes, both reviewers).
+
 ## 1.0.1 — 2026-07-10
 
 - README: the "always-on" recommendation now matches the plugin's design — a two-line CLAUDE.md (standing skill trigger + mode declaration) instead of the inherited doctrine-restatement paragraph, which duplicated skill content and omitted invoking the skill.
