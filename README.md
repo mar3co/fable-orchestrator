@@ -1,6 +1,6 @@
 # Fable Advisor
 
-> Forked from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor). Same architect pattern; this fork makes implementation routing a declared mode (grok-only when unconfigured, codex-only, or mix — the architect routes per task), never races lanes, guarantees a Claude Opus subagent as the terminal fallback, runs lanes under a shipped process supervisor, adds tiered review doctrine, and adds `grok-researcher` / `grok-reviewer` agents.
+> Originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) (MIT); now an independently maintained plugin, detached from the fork network — this is not that plugin. Distinctives: implementation routing as a declared mode (grok-only when unconfigured, codex-only, or mix — the architect routes per task), no lane racing, a guaranteed Claude Opus terminal fallback, a shipped lane process supervisor, tiered review doctrine, and the `grok-researcher` / `grok-reviewer` agents.
 
 **The smartest model runs the show. Cheaper models do the typing.**
 
@@ -162,9 +162,9 @@ touching 3+ files, consult the fable-advisor agent and act on its verdict.
 
 **Why not just run everything on Fable?** You can. It's excellent. It's also the most expensive lane per token, and most of a session's tokens are implementation mechanics the CLI lanes handle well enough once the architect owns the hard parts and verifies the result. Spend the premium where judgment lives.
 
-**Why not race both CLI lanes on high-stakes work?** (Upstream recommends this; the fork removed it.) Racing pays twice for typing plus once more for the judging, and a plausible-looking wrong diff still needs review to catch. A single implementation plus genuinely independent cross-vendor review of the diff buys the same assurance cheaper — and review scales to any diff, raced or not.
+**Why not race both CLI lanes on high-stakes work?** (The original fable-advisor recommends this; we removed it.) Racing pays twice for typing plus once more for the judging, and a plausible-looking wrong diff still needs review to catch. A single implementation plus genuinely independent cross-vendor review of the diff buys the same assurance cheaper — and review scales to any diff, raced or not.
 
-**How does this differ from upstream?** Upstream hardcodes grok as the default and recommends racing lanes for high-stakes work. This fork keeps the grok default but makes routing a declared mode (grok-only, codex-only, or mix — the architect routes per task), removes racing, guarantees a Claude Opus terminal fallback with every substitution announced, ships a process supervisor (`scripts/run-lane.sh`) so long runs survive the harness's 10-minute foreground cap, adds tiered review doctrine, and adds the `grok-researcher` / `grok-reviewer` agents.
+**How does this relate to DannyMac180's fable-advisor?** This project began as a fork of it and is now maintained independently (detached from the fork network; the shared plugin name means you should confirm which one you installed — `scripts/doctor.sh` prints the identity). Relative to the original: routing is a declared mode (grok-only, codex-only, or mix — the architect routes per task), racing is removed, a Claude Opus terminal fallback is guaranteed with every substitution announced, a process supervisor (`scripts/run-lane.sh`) lets long runs survive the harness's 10-minute foreground cap, review doctrine is tiered, and the `grok-researcher` / `grok-reviewer` agents are additions.
 
 **Why Grok and GPT-5.6 Sol lanes in a Claude plugin?** Vendor diversity. Models from one family share blind spots; an independent implementation from a different lineage catches what same-family review misses — and with Claude as the architect, *every* diff now gets cross-vendor review for free. The architect stays Claude — the lanes are producers, not judges.
 

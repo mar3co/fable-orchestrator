@@ -9,8 +9,8 @@ warn(){ printf '  warn %s\n' "$1"; WARN=$((WARN+1)); }
 bad() { printf '  FAIL %s\n' "$1"; FAIL=$((FAIL+1)); }
 
 VER=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$(dirname "$0")/../.claude-plugin/plugin.json" 2>/dev/null | head -1)
-echo "fable-advisor doctor — mar3co/fable-advisor fork, v${VER:-unknown}"
-echo "(not the upstream DannyMac180 plugin: routing modes, no lane racing)"
+echo "fable-advisor doctor — mar3co/fable-advisor, v${VER:-unknown}"
+echo "(independently maintained; not DannyMac180's original plugin of the same name)"
 echo
 
 T=$(command -v gtimeout || command -v timeout || true)

@@ -1,6 +1,6 @@
 # Changelog
 
-Fork of [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor); versions continue upstream's numbering (upstream is at 3.1.0). Plugin updates are version-gated — every change ships with a version bump.
+Originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0; independently maintained since 2026-07-10 (detached from the fork network), continuing the original's version numbering. Plugin updates are version-gated — every change ships with a version bump.
 
 ## 3.5.0 — 2026-07-10
 
