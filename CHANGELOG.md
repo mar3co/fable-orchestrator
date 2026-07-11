@@ -6,7 +6,7 @@
 
 Adopted from field use (#1).
 
-- **Background by default**: new "Waiting on lanes" doctrine section — every lane launches with `run_in_background: true`; the architect ends its turn on a one-line status and acts on the completion notification. A synchronous wait buys nothing (a blocked call generates no tokens, and a notification resume costs the same near-fully-cached context re-read) while holding the session hostage to the lane's wall clock — the user can't interject until the turn closes. Synchronous invocation stays available as the rare, announced exception for results that must compose in-turn. Surfaced in the README rules; the checklist stays frozen at seven (it indexes delegation steps, and this governs the wait, not the delegation).
+- **Background by default**: new "Waiting on lanes" doctrine section — every lane runs in the background (the Agent tool's default; the doctrine bans forcing `run_in_background: false`), and the architect ends its turn on a one-line status and acts on the completion notification. A synchronous wait buys nothing (a blocked call generates no tokens, and a notification resume costs the same near-fully-cached context re-read) while holding the session hostage to the lane's wall clock — the user can't interject until the turn closes. Synchronous invocation stays available as the rare, announced exception for results that must compose in-turn. Surfaced in the README rules; the checklist stays frozen at seven (it indexes delegation steps, and this governs the wait, not the delegation).
 
 ## 1.6.0 — 2026-07-11
 
