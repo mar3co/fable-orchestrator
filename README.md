@@ -124,15 +124,17 @@ implementation, and verify the evidence before you call it done.
 
 The architect writes the five-part spec, routes it per your implementation mode, reads the diff and verification evidence when the report comes back, and only then reports done. Behavior-bearing diffs can additionally get a cold second opinion from `grok-reviewer` — an independent model family reading the diff with no design context.
 
-To make the doctrine always-on, add one line to your project's `CLAUDE.md`:
+To make the doctrine always-on, add two lines to your `CLAUDE.md` (user-level for every project, or per-project) — a standing trigger plus your mode declaration. Don't restate the doctrine itself in `CLAUDE.md`: it lives in the skill, and copies drift.
 
 ```
-You are the architect running the most expensive model — minimize your
-own token volume. Delegate all implementation through the orchestration
-skill's routing table (never type code yourself), delegate broad codebase
-exploration to cheap read-only agents, and verify evidence before
-accepting any lane's report.
+- Every session, without being reminded: non-trivial implementation runs the
+  fable-orchestrator architect-as-orchestrator flow — invoke the
+  fable-orchestrator:orchestration skill before delegating and follow it as
+  authoritative for routing, verification, review tiers, and advisor consults.
+- fable-orchestrator: implementation lane = grok
 ```
+
+The second line is optional if you want the grok default; set it to `codex` or `mix` to choose otherwise.
 
 ## Commitment boundaries
 

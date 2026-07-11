@@ -2,6 +2,10 @@
 
 **fable-orchestrator**, originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0 and independently maintained since 2026-07-10 (detached from the fork network). Plugin updates are version-gated — every change ships with a version bump. Entries 3.1.1–3.5.0 below predate the rename, when this project was the fable-advisor fork; 3.5.0 was never published under that name.
 
+## 1.0.1 — 2026-07-10
+
+- README: the "always-on" recommendation now matches the plugin's design — a two-line CLAUDE.md (standing skill trigger + mode declaration) instead of the inherited doctrine-restatement paragraph, which duplicated skill content and omitted invoking the skill.
+
 ## 1.0.0 — 2026-07-10
 
 - Renamed plugin and repo: fable-advisor → **fable-orchestrator** (`mar3co/fable-orchestrator`), with the version reset to 1.0.0 as an independent plugin. Includes everything listed under 3.5.0 below. Breaking relative to the fable-advisor releases: the install key is `fable-orchestrator@fable-orchestrator`, agent references become `fable-orchestrator:*`, and the canonical config prefix becomes `fable-orchestrator: implementation lane = …` (old `fable-advisor:` declarations are still honored by intent). The advisor agent keeps its `fable-advisor` name. The rename ends the install-time name collision with the original plugin.
