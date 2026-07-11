@@ -2,6 +2,12 @@
 
 **fable-orchestrator**, originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0 and independently maintained since 2026-07-10 (detached from the fork network). Plugin updates are version-gated — every change ships with a version bump. Entries 3.1.1–3.5.0 below predate the rename, when this project was the fable-advisor fork; 3.5.0 was never published under that name.
 
+## 1.3.0 — 2026-07-10
+
+- **Verifiability routing stated as the general principle**: every lane routes by how its output can fail, not by task label — invisible-omission failure modes get the strongest model. (The exploration split shipped in 1.2.0 was one instance; now the rule itself is doctrine.)
+- **Research verification lane**: grok-researcher's leads are breadth, not truth — verification-grade synthesis (source-reading, adversarial fact-checking, confirmed-vs-anecdotal labeling) goes to the strongest Claude model before anything load-bearing rests on them. Completes the research pipeline the way 1.2.0's refutation pass completed review.
+- Context-lean rules gain the spec-writing heuristic (read the ~40 lines around the seams, never the ~1,000-line file) and filter-at-the-tool-call discipline (`--jq`, `grep`, `tail`).
+
 ## 1.2.0 — 2026-07-10
 
 Doctrine promoted into the skill from the maintainer's private CLAUDE.md, where it was covering gaps the plugin should own.
