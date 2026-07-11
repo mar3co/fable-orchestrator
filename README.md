@@ -69,7 +69,7 @@ Then run the setup wizard — it detects your CLIs and any existing configuratio
 /fable-orchestrator:setup
 ```
 
-Update later with `claude plugin marketplace update fable-orchestrator && claude plugin update fable-orchestrator@fable-orchestrator`. Then start your session as the architect:
+Then start your session as the architect:
 
 ```
 /model fable
@@ -79,6 +79,15 @@ Verify the lanes before a task needs them — checks both CLIs (presence, auth, 
 
 ```
 bash scripts/doctor.sh
+```
+
+## Update
+
+Pull the latest release — first refresh the marketplace, then update the plugin:
+
+```
+claude plugin marketplace update fable-orchestrator
+claude plugin update fable-orchestrator@fable-orchestrator
 ```
 
 ## Choose your implementation routing
