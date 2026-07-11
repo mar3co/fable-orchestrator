@@ -15,7 +15,7 @@ guidance.
 These are the only lines this wizard ever writes (only the mode value varies):
 
 ```
-- When the session model is Fable, without being reminded: non-trivial implementation runs the fable-orchestrator architect-as-orchestrator flow — invoke the `fable-orchestrator:orchestration` skill before delegating and follow it as authoritative for routing, verification, review tiers, and advisor consults.
+- When the session model is Fable, without being reminded: non-trivial implementation runs the fable-orchestrator architect-as-orchestrator flow — invoke the fable-orchestrator:orchestration skill before delegating and follow it as authoritative for routing, verification, review tiers, and advisor consults.
 - fable-orchestrator: implementation lane = <grok|codex|mix>
 ```
 
@@ -74,7 +74,7 @@ existing setting, mark the matching option "(current setting)".
    fable-orchestrator:orchestration skill manually).
 
 If detection found a trigger line that references the orchestration skill but
-is NOT Fable-gated (does not begin "When the session model is Fable") in the
+is NOT Fable-gated (does not contain "When the session model is Fable") in the
 file the user picked, ask one follow-up question in a second AskUserQuestion
 call (it cannot join the first call — whether it applies depends on the scope
 answer): offer to upgrade the line to the gated form, explaining that the
@@ -87,10 +87,14 @@ Touch only the chosen file:
 - Create it if missing.
 - **Lane line**: if a `fable-orchestrator: implementation lane =` line exists,
   replace it in place; otherwise append the canonical mode line.
-- **Trigger** (only when always-on was chosen): if no line referencing
-  `fable-orchestrator:orchestration` exists, append the canonical trigger
-  line. If one already exists, never add another — leave it as is, or rewrite
-  it in place to the gated canonical form if the user accepted the upgrade.
+- **Trigger** (only when always-on was chosen): an existing trigger means a
+  line that functions as a standing always-on instruction to run the flow —
+  the canonical forms contain "without being reminded" plus the skill
+  reference. A mere mention of fable-orchestrator:orchestration (e.g. a
+  per-task usage note) does not count. If no existing trigger, append the
+  canonical trigger line. If one exists, never add another — leave it as is,
+  or rewrite it in place to the gated canonical form if the user accepted the
+  upgrade.
 - **No-op re-run**: if the chosen configuration already matches the file, make
   no edit — say "no changes needed" and list what was verified. Never silently
   rewrite a file.

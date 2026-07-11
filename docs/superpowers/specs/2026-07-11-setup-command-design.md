@@ -52,8 +52,10 @@ question inside one call cannot be conditioned on another answer in that call.
 - Create the target CLAUDE.md if missing.
 - Replace an existing `fable-orchestrator: implementation lane =` line in the
   chosen file rather than appending a second.
-- Skip the trigger if an equivalent one is already present — any line in the
-  target file referencing the `fable-orchestrator:orchestration` skill counts.
+- Skip the trigger if an equivalent one is already present — a line that
+  functions as a standing always-on instruction (the canonical forms contain
+  "without being reminded" plus the skill reference). A mere mention of the
+  skill, such as a per-task usage note, does not count.
 - If nothing changes (re-run with same choices), say "no changes needed" and
   list what was verified — never silently rewrite.
 - Lines written are the canonical trigger and mode declaration (the
