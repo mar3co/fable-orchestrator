@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fable-advisor doctor — validate every CLI lane before a task needs it.
+# fable-orchestrator doctor — validate every CLI lane before a task needs it.
 # Live checks send one trivial prompt per lane (a real, tiny API call).
 set -u
 
@@ -9,7 +9,7 @@ warn(){ printf '  warn %s\n' "$1"; WARN=$((WARN+1)); }
 bad() { printf '  FAIL %s\n' "$1"; FAIL=$((FAIL+1)); }
 
 VER=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$(dirname "$0")/../.claude-plugin/plugin.json" 2>/dev/null | head -1)
-echo "fable-advisor doctor — mar3co/fable-advisor, v${VER:-unknown}"
+echo "fable-orchestrator doctor — mar3co/fable-orchestrator, v${VER:-unknown}"
 echo "(independently maintained; not DannyMac180's original plugin of the same name)"
 echo
 

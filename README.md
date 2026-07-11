@@ -1,4 +1,4 @@
-# Fable Advisor
+# Fable Orchestrator
 
 > Originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) (MIT); now an independently maintained plugin, detached from the fork network — this is not that plugin. Distinctives: implementation routing as a declared mode (grok-only when unconfigured, codex-only, or mix — the architect routes per task), no lane racing, a guaranteed Claude Opus terminal fallback, a shipped lane process supervisor, tiered review doctrine, and the `grok-researcher` / `grok-reviewer` agents.
 
@@ -51,15 +51,15 @@ Fallbacks mirror by mode: whichever lane was chosen, an unavailable lane re-rout
 ## Install
 
 ```
-claude plugin marketplace add mar3co/fable-advisor
-claude plugin install fable-advisor@fable-advisor
+claude plugin marketplace add mar3co/fable-orchestrator
+claude plugin install fable-orchestrator@fable-orchestrator
 ```
 
 Updating an existing installation to the latest release:
 
 ```
-claude plugin marketplace update fable-advisor
-claude plugin update fable-advisor@fable-advisor
+claude plugin marketplace update fable-orchestrator
+claude plugin update fable-orchestrator@fable-orchestrator
 ```
 
 Then start your session as the architect:
@@ -83,9 +83,9 @@ It checks for a timeout binary and validates both CLIs — presence, auth, and m
 One line in any CLAUDE.md that applies to your session picks the mode — grok is the unconfigured default:
 
 ```
-fable-advisor: implementation lane = grok
-fable-advisor: implementation lane = codex
-fable-advisor: implementation lane = mix
+fable-orchestrator: implementation lane = grok
+fable-orchestrator: implementation lane = codex
+fable-orchestrator: implementation lane = mix
 ```
 
 - **grok** — everything goes to Grok 4.5. Cheap typing when your specs are strong, with assurance from verification and the review tiers.
@@ -164,7 +164,7 @@ touching 3+ files, consult the fable-advisor agent and act on its verdict.
 
 **Why not race both CLI lanes on high-stakes work?** (The original fable-advisor recommends this; we removed it.) Racing pays twice for typing plus once more for the judging, and a plausible-looking wrong diff still needs review to catch. A single implementation plus genuinely independent cross-vendor review of the diff buys the same assurance cheaper — and review scales to any diff, raced or not.
 
-**How does this relate to DannyMac180's fable-advisor?** This project began as a fork of it and is now maintained independently (detached from the fork network; the shared plugin name means you should confirm which one you installed — `scripts/doctor.sh` prints the identity). Relative to the original: routing is a declared mode (grok-only, codex-only, or mix — the architect routes per task), racing is removed, a Claude Opus terminal fallback is guaranteed with every substitution announced, a process supervisor (`scripts/run-lane.sh`) lets long runs survive the harness's 10-minute foreground cap, review doctrine is tiered, and the `grok-researcher` / `grok-reviewer` agents are additions.
+**How does this relate to DannyMac180's fable-advisor?** This project began as a fork of it and is now maintained independently (detached from the fork network, and renamed to fable-orchestrator so the two are no longer confusable at install time). Relative to the original: routing is a declared mode (grok-only, codex-only, or mix — the architect routes per task), racing is removed, a Claude Opus terminal fallback is guaranteed with every substitution announced, a process supervisor (`scripts/run-lane.sh`) lets long runs survive the harness's 10-minute foreground cap, review doctrine is tiered, and the `grok-researcher` / `grok-reviewer` agents are additions.
 
 **Why Grok and GPT-5.6 Sol lanes in a Claude plugin?** Vendor diversity. Models from one family share blind spots; an independent implementation from a different lineage catches what same-family review misses — and with Claude as the architect, *every* diff now gets cross-vendor review for free. The architect stays Claude — the lanes are producers, not judges.
 

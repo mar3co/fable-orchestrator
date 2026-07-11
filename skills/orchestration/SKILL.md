@@ -39,9 +39,9 @@ The fallback chain is the same in every mode and every step is announced explici
 Three modes, declared with one line in any CLAUDE.md that applies to the session — canonical forms:
 
 ```
-fable-advisor: implementation lane = grok    (the unconfigured default)
-fable-advisor: implementation lane = codex
-fable-advisor: implementation lane = mix
+fable-orchestrator: implementation lane = grok    (the unconfigured default)
+fable-orchestrator: implementation lane = codex
+fable-orchestrator: implementation lane = mix
 ```
 
 - **grok** — every implementation task goes to `grok-implementer`. Fixed; cheap typing when specs are strong, with assurance from verification and the review tiers.

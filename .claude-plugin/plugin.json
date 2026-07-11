@@ -1,12 +1,12 @@
 {
-  "name": "fable-advisor",
-  "version": "3.5.0",
+  "name": "fable-orchestrator",
+  "version": "1.0.0",
   "description": "Run your session on Claude's most capable model as a full-time architect: it writes specs and verdicts while GPT-5.6 Sol at high reasoning (via Codex) and Grok 4.5 (via the Grok CLI) do the typing — default lane configurable per user. Also ships grok-researcher (live web/X research + codebase lookups) and grok-reviewer (cold diff review lens). Fable-level judgment with cross-vendor implementation and review.",
   "author": {
     "name": "mar3co",
     "url": "https://github.com/mar3co"
   },
-  "homepage": "https://github.com/mar3co/fable-advisor",
+  "homepage": "https://github.com/mar3co/fable-orchestrator",
   "license": "MIT",
   "keywords": [
     "agents",

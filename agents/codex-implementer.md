@@ -1,6 +1,6 @@
 ---
 name: codex-implementer
-description: Implementation lane running GPT-5.6 Sol via the OpenAI Codex CLI (`codex exec`, reasoning effort high). Routing follows the session's declared mode (`fable-advisor: implementation lane = grok|codex|mix`; grok when unconfigured) — in codex mode ALL implementation comes here; in mix mode, the correctness-critical share (concurrency, auth/security, migrations, subtle state, anything the spec can't fully pin — and when in doubt); in grok mode (the unconfigured default), only as the outage fallback. Never race the CLI lanes. Receives the standard five-part spec; drives codex to write the code; returns a structured report with verification evidence. Requires the `codex` CLI installed and authenticated — reports a structured error if it is missing, never silently substitutes itself (the caller falls back to the other CLI lane if installed, then a Claude Opus subagent, always).
+description: Implementation lane running GPT-5.6 Sol via the OpenAI Codex CLI (`codex exec`, reasoning effort high). Routing follows the session's declared mode (`fable-orchestrator: implementation lane = grok|codex|mix`; grok when unconfigured) — in codex mode ALL implementation comes here; in mix mode, the correctness-critical share (concurrency, auth/security, migrations, subtle state, anything the spec can't fully pin — and when in doubt); in grok mode (the unconfigured default), only as the outage fallback. Never race the CLI lanes. Receives the standard five-part spec; drives codex to write the code; returns a structured report with verification evidence. Requires the `codex` CLI installed and authenticated — reports a structured error if it is missing, never silently substitutes itself (the caller falls back to the other CLI lane if installed, then a Claude Opus subagent, always).
 model: sonnet
 tools: Bash, Read, Grep, Glob
 ---
@@ -39,7 +39,7 @@ The plugin ships `scripts/run-lane.sh`, the process supervisor that owns launchi
 
 ```bash
 RL="${CLAUDE_PLUGIN_ROOT}/scripts/run-lane.sh"
-[ -x "$RL" ] || RL=$(ls -d ~/.claude/plugins/cache/fable-advisor/fable-advisor/*/scripts/run-lane.sh 2>/dev/null | sort -V | tail -1)
+[ -x "$RL" ] || RL=$(ls -d ~/.claude/plugins/cache/fable-orchestrator/fable-orchestrator/*/scripts/run-lane.sh 2>/dev/null | sort -V | tail -1)
 ```
 
 1. Write the spec to a unique prompt file — never inline shell quoting, never a fixed path (parallel lanes on fixed paths corrupt each other):

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-lane.sh — process supervisor for fable-advisor CLI lanes.
+# run-lane.sh — process supervisor for fable-orchestrator CLI lanes.
 #
 # The harness caps any foreground tool call at 10 minutes, so lanes must never
 # hold their CLI in one long call. This script owns the fragile parts:
