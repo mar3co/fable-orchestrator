@@ -103,7 +103,8 @@ Touch only the chosen file:
 One AskUserQuestion call, recommended option first: run doctor now? Note that
 it sends one tiny live prompt per installed CLI — a real but negligible API
 cost. On yes, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.sh"` and show
-the result. On skip, print the command for later.
+the result. On skip, note they can run `/fable-orchestrator:doctor` any time
+later.
 
 Close with a summary: chosen mode and what routes where, scope, always-on
 status, doctor result (or the skip note), and a final reminder — start

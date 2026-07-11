@@ -6,6 +6,7 @@
 
 - **`/fable-orchestrator:setup`**: interactive post-install wizard — detects installed CLIs and existing configuration, asks lane mode (grok/codex/mix, every option annotated with CLI status, none hidden), scope (user or project CLAUDE.md), and always-on; writes the two config lines idempotently (replaces an existing lane line in place, never duplicates the trigger, honest "no changes needed" on a no-op re-run); offers a doctor run at the end. Detect-and-warn only: it never installs CLIs, never touches settings.json, and writes to nothing but the one chosen CLAUDE.md.
 - **Fable-gated always-on trigger**: the canonical trigger line (written by setup, documented in the README) now begins "When the session model is Fable" — sessions on other models skip the flow instead of running an architect pattern their model wasn't chosen for. Setup detects a pre-existing unconditional trigger and offers to upgrade it in place.
+- **`/fable-orchestrator:doctor`**: slash-command wrapper for `scripts/doctor.sh` — plugin installs get lane validation without hunting down the script's cache path (`${CLAUDE_PLUGIN_ROOT}` resolves it). The README points here first, and setup's skip note references it. The README's update instructions also moved into their own section.
 
 ## 1.7.0 — 2026-07-11
 
