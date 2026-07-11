@@ -2,6 +2,14 @@
 
 **fable-orchestrator**, originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0 and independently maintained since 2026-07-10 (detached from the fork network). Plugin updates are version-gated — every change ships with a version bump. Entries 3.1.1–3.5.0 below predate the rename, when this project was the fable-advisor fork; 3.5.0 was never published under that name.
 
+## 1.6.0 — 2026-07-11
+
+Adopted from a fifth external Grok 4.5 review — all four items, one with a design choice.
+
+- **Spike promotion gate** (the design choice: preferred over "security paths are never spikes"): spike status lasts only while the code is throwaway — spike code promoted toward main re-enters the review tiers as normal behavior-bearing work before merge. A hard ban would push legitimate auth prototyping back to informal undeclared downgrades; the gate bans nothing while closing the real leak path. Spike declarations on security/auth paths are flagged as a smell worth one explicit confirmation.
+- **Checklist completed and frozen at seven items**: item 4 is now the full review-tier decision (spike/mechanical → verify only; behavior-bearing → opposite-family cold; security → add the silent-failure read), and a new item covers load-bearing research verification. The old item 4 actively contradicted the spike tier, not merely omitted it. Frozen: the checklist is an index, and further growth would turn it into a second dense body.
+- **Spikes surfaced in the README** rules section, matching the skill.
+
 ## 1.5.0 — 2026-07-11
 
 Partly adopted from a fourth external Grok 4.5 review.

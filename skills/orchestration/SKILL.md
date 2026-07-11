@@ -14,9 +14,10 @@ Every delegation, no exceptions — details in the sections below:
 1. **Mode** — grok (unconfigured default) | codex | mix, per the session's CLAUDE.md declaration.
 2. **Spec** — all five parts, an honest `TIMEOUT:` when it differs from the default, the smallest verification bundle that proves the change.
 3. **Report back** — read the diff; demand execution evidence (captured log or wrapper re-run), never a claim.
-4. **Behavior-bearing diff** — one cold review from the model family that did NOT implement it (if that lane is down: Opus cold, announced).
-5. **Findings** — refutation pass in severity order; max two respec rounds, then surface residuals to the user.
-6. **Commitment boundary / declaring done** — consult `fable-advisor` with exact files and pasted evidence.
+4. **Review tier** — caller-declared spike or mechanical diff: verify only (spikes are declared, never inferred). Behavior-bearing: one cold review from the model family that did NOT implement it (if that lane is down: Opus cold, announced). Security/auth/concurrency: add the silent-failure completeness read.
+5. **Findings** — refutation pass, cited-first in severity order; max two respec rounds, then surface residuals to the user.
+6. **Load-bearing research** — verified by a strong Claude lane that fetches the sources itself, before anything rests on it.
+7. **Commitment boundary / declaring done** — consult `fable-advisor` with exact files and pasted evidence.
 
 Every fallback is announced; verification and review never relax under fallback.
 
@@ -101,7 +102,7 @@ Pass it the decision, the constraints, the options considered, the exact file pa
 Verification (below) is not review. Verification asks "did it do what the spec said, and do the checks pass?" Cold review asks "what is wrong that the author — and the architect's own framing — didn't see?" The architect reading a lane's diff is verification with cross-vendor eyes, not cold review: the architect wrote the spec and is primed by it. Tier by the diff:
 
 - **Mechanical diffs** (renames, literal moves, no behavior change): verification only.
-- **Declared spikes** (the caller explicitly marks the task throwaway/prototype, not headed to main): verification only, with the spike status restated in the report. A spike is DECLARED by the caller, never inferred — silently downgrading real work to spike treatment under pressure is exactly the failure this named tier exists to prevent.
+- **Declared spikes** (the caller explicitly marks the task throwaway/prototype, not headed to main): verification only, with the spike status restated in the report. A spike is DECLARED by the caller, never inferred — silently downgrading real work to spike treatment under pressure is exactly the failure this named tier exists to prevent. Spike status lasts only while the code is throwaway: if spike code is later promoted toward main, the promoted diff re-enters these tiers as normal behavior-bearing work (cold review, plus the security pass where it applies) before merge. A spike declaration on security/auth paths is a smell worth one explicit confirmation that the work is genuinely throwaway.
 - **Behavior-bearing diffs**: add one cold review pass — diff only, no intent framing — from a model family DIFFERENT from the implementer's: grok implemented → `codex-reviewer`; codex implemented → `grok-reviewer`; a Claude fallback lane implemented → either. A reviewer from the author's own family shares the author's blind spots and is not a second lens. If the opposite-family CLI reviewer is unavailable, the cold pass falls back to the strongest Claude model available (Agent tool, `model: "opus"`, diff-only and cold — Claude is a third family versus both CLI implementers), announced like every substitution. Review is never silently skipped and never silently same-family.
 - **Security / auth / concurrency / migration paths**: additionally have a strong Claude model read every error / nil / empty / timeout branch for silent failure (a read-only session pass or an Opus subagent). Omission-type misses never appear in any reviewer's report, so this tier is about completeness, not a second opinion.
 
