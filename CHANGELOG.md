@@ -2,6 +2,14 @@
 
 **fable-orchestrator**, originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0 and independently maintained since 2026-07-10 (detached from the fork network). Plugin updates are version-gated — every change ships with a version bump. Entries 3.1.1–3.5.0 below predate the rename, when this project was the fable-advisor fork; 3.5.0 was never published under that name.
 
+## 1.2.0 — 2026-07-10
+
+Doctrine promoted into the skill from the maintainer's private CLAUDE.md, where it was covering gaps the plugin should own.
+
+- **Refutation pass** defined in the review tiers — both reviewer agents already said "the caller runs the refutation pass," but the skill never defined it. The architect now refutes each cited finding against the code before acting (confirmed → corrected spec; refuted → dropped with a reason), and on security-tier diffs also refutes the *clean* report by spot-checking the riskiest branch.
+- **Exploration routed by failure mode**: bounded, checkable lookups → cheap read-only agent; completeness-critical sweeps ("what else can touch this resource?") → the strongest Claude model available, because an omitted answer never appears in the report. Load-bearing exploration claims get a session-level spot-check before architecture rests on them.
+- **Parallelism**: past ~4 parallel lanes, propose the harness's Workflow tool (where available; explicit user opt-in) so lane transcripts never enter the architect's context.
+
 ## 1.1.0 — 2026-07-10
 
 Partly adopted from a second external Grok 4.5 review; the reviewer-family rule came from the maintainer.

@@ -13,11 +13,11 @@ The session model is the most expensive lane in the system, on both input and ou
 
 **Emit judgment, not volume.** The architect's output is decomposition, specs, routing decisions, verdicts on diffs, and short reports. It does not type implementation code, test bodies, boilerplate, or config files. A code block longer than an interface signature or a few illustrative lines is a spec that hasn't been delegated yet — stop and delegate it. Fixing a lane's bug by hand is the same failure in disguise: send a corrected spec back to the cheap lane instead.
 
-**Keep the context lean.** Everything in the architect's context is re-read at architect prices on every turn. Delegate broad exploration, codebase searches, and log-grepping to a cheap read-only agent and keep only the conclusions; read files yourself only when the decision genuinely depends on the exact code. Don't paste long files, full diffs, or verbose command output into the conversation when a path reference or an excerpt will do.
+**Keep the context lean.** Everything in the architect's context is re-read at architect prices on every turn. Delegate exploration and log-grepping, keep only the conclusions, and route exploration by how its output can fail: bounded, checkable lookups — where is X defined, list the callers, inventory the endpoints — go to a cheap read-only agent, because a wrong answer is visible and cheap to re-check; completeness-critical sweeps — "what else can touch this resource?", "are there other write paths?" — go to the strongest Claude model available (Agent tool, `model: "opus"`), because their failure mode is an invisible omission that never appears in the report and silently poisons the architecture built on it. Read files yourself only when the decision genuinely depends on the exact code, and don't paste long files, full diffs, or verbose command output into the conversation when a path reference or an excerpt will do.
 
 **Reason once, then hand off.** Do the hard thinking — the architecture, the interface design, the debugging hypothesis — in one pass, capture it in the spec, and let the cheap lane carry it from there. Re-deriving decisions across turns burns the premium twice.
 
-What stays with the architect regardless of cost: decomposition, interface design, hypothesis selection when debugging, spec writing, lane routing, and judging verification evidence. Those tokens are what the premium is for — everything else is a candidate for delegation.
+What stays with the architect regardless of cost: decomposition, interface design, hypothesis selection when debugging, spec writing, lane routing, and judging verification evidence. Any load-bearing exploration claim ("nothing else touches X") gets a session-level spot-check before an architectural decision rests on it. Those tokens are what the premium is for — everything else is a candidate for delegation.
 
 ## The lanes
 
@@ -69,6 +69,8 @@ A spec you can't finish writing is a signal the decision isn't made yet — that
 
 Independent specs (no shared files, no ordering dependency) launch as parallel agents in a single message. Sequential chains and single-file surgery stay serial. One writer per module or package; schema and migration work is always serial — "no shared files" is necessary but not sufficient, because adjacent files, generated code, and lockfiles collide too.
 
+Past roughly four parallel lanes, raw agent calls stop scaling — every report lands in the architect's context. Where the harness's Workflow tool is available, propose orchestrating the fan-out through it instead: lane transcripts never enter the architect's context and the control flow is deterministic. It requires the user's explicit opt-in — ask, don't assume.
+
 ## Commitment boundaries
 
 Consult `fable-advisor` (read-only, verdict in under 300 words) at the moments that decide whether the next hour is wasted:
@@ -88,6 +90,8 @@ Verification (below) is not review. Verification asks "did it do what the spec s
 - **Security / auth / concurrency / migration paths**: additionally have a strong Claude model read every error / nil / empty / timeout branch for silent failure (a read-only session pass or an Opus subagent). Omission-type misses never appear in any reviewer's report, so this tier is about completeness, not a second opinion.
 
 If in doubt whether a diff is mechanical, it isn't.
+
+Reviewer findings are claims, not verdicts — the architect runs the **refutation pass** before acting. For each finding: read the cited `file:line` against the actual code and try to refute it. Refuted → drop it, with a one-line reason. Confirmed → a corrected spec goes back to the implementation lane, never a hand-fix. Cold lenses trade precision for recall, so false positives are expected — each costs one refutation, while every unique true positive is pure gain. On security-tier diffs, also refute the *clean* report: "no findings" is itself a claim, so spot-check the diff's riskiest branch yourself before accepting it — the unchallenged "it's fine" is where bugs hide.
 
 ## Verification
 
