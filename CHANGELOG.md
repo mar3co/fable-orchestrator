@@ -2,6 +2,19 @@
 
 Fork of [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor); versions continue upstream's numbering (upstream is at 3.1.0). Plugin updates are version-gated — every change ships with a version bump.
 
+## 3.5.0 — 2026-07-10
+
+Adopted, with modifications, from an external Grok 4.5 review of the fork.
+
+- **Implementation routing modes**: `fable-advisor: implementation lane = codex | grok | mix` (one CLAUDE.md line; codex when unconfigured). Fixed modes send everything to one lane; mix lets the architect route per task — mechanical/spec-determined → grok, correctness-critical → codex, doubt → codex. Availability is discovered, not declared: every mode falls back through the other installed CLI lane to a guaranteed Claude Opus subagent, announced.
+- **`scripts/run-lane.sh`**: process supervisor owning launch, pure-bash watchdog (no coreutils dependency), bounded wait slices, and cleanup — implementer agents are now thin wrappers, and the fragile shell moved out of prompts.
+- **Review tiers** in the orchestration skill: verification ≠ cold review; mechanical diffs → verification only, behavior-bearing → cold `grok-reviewer` pass, security/auth/concurrency/migrations → add a silent-failure completeness read on a strong Claude model.
+- **`grok-researcher` narrowed to live web/X research** — codebase lookups (where-is-X, inventories) belong to cheap in-process read-only agents, which are faster and more accurate for file:line work than an external CLI hop.
+- **Honesty pass** on README + skill: "near-parity" softened to "good enough when the architect owns the hard parts and verifies"; verification vs cold review distinguished; the three-layer cost structure (architect / Sonnet wrapper / CLI producer) stated; "cheapest adequate lane" prose reconciled with the mode doctrine.
+- Advisor consults must include pasted decisive evidence (failing output, traces), not just file paths.
+- Parallelism rule: one writer per module/package; schema and migration work is always serial.
+- README: producer permissions table. Doctor: prints fork identity + version banner.
+
 ## 3.4.1 — 2026-07-10
 
 - README: Mermaid flowchart ("How routing works") showing lane selection, the configurable default, the announced fallback chain, and the verification gate.

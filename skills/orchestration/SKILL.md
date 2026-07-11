@@ -5,11 +5,11 @@ description: Routing doctrine for the architect-as-orchestrator pattern — how 
 
 # Orchestration — the architect's routing doctrine
 
-The session is the architect: it owns requirements, architecture, decomposition, specs, routing, and verification. It should almost never type implementation code. Every implementation task gets routed to the cheapest lane that is adequate for it — escalation is deliberate, per task, never a fixed binding.
+The session is the architect: it owns requirements, architecture, decomposition, specs, routing, and verification. It should almost never type implementation code. Implementation routing follows the session's configured mode — **codex** (fixed, the unconfigured default), **grok** (fixed), or **mix**, where the architect routes each task by kind (see "Choosing your implementation routing"). The unconfigured default is fixed-codex: it optimizes for fewer subtle bugs over per-task token savings, and a fixed binding cannot drift.
 
 ## Cost discipline — the prime directive
 
-The session model is the most expensive lane in the system, on both input and output tokens. The whole economic case for this pattern is keeping its token volume low: spend Fable on judgment, spend Sonnet on volume. Three rules follow.
+The session model is the most expensive lane in the system, on both input and output tokens. The whole economic case for this pattern is keeping its token volume low: spend Fable on judgment; the CLI producers carry the code volume, with a thin Sonnet wrapper supervising each lane (preflight, wait slices, re-verification — real but modest overhead, stated honestly). Three rules follow.
 
 **Emit judgment, not volume.** The architect's output is decomposition, specs, routing decisions, verdicts on diffs, and short reports. It does not type implementation code, test bodies, boilerplate, or config files. A code block longer than an interface signature or a few illustrative lines is a spec that hasn't been delegated yet — stop and delegate it. Fixing a lane's bug by hand is the same failure in disguise: send a corrected spec back to the cheap lane instead.
 
@@ -23,24 +23,30 @@ What stays with the architect regardless of cost: decomposition, interface desig
 
 | Lane | Producer | Invoke | Route here when |
 |---|---|---|---|
-| Implementation (default) | GPT-5.6 Sol (high reasoning) | `codex-implementer` agent | All implementation work, routine or correctness-critical — unless the user declared grok the default (see "Choosing your default lane"). Requires the codex CLI. |
-| Implementation (alternate) | Grok 4.5 | `grok-implementer` agent | The user declared grok the default implementation lane, or the default lane is unavailable. Requires the [Grok CLI](https://x.ai/cli). |
-| Research / review | Grok 4.5 | `grok-researcher` / `grok-reviewer` agents | Not implementation lanes: breadth-first live-web/X research and mechanical codebase lookups (`grok-researcher`), or a cold second review lens on a diff (`grok-reviewer`). |
+| Implementation | GPT-5.6 Sol (high reasoning) | `codex-implementer` agent | All implementation in **codex** mode (the unconfigured default). In **mix** mode: correctness-critical work — concurrency, auth/security, migrations, subtle state, anything the spec can't fully pin. Requires the codex CLI. |
+| Implementation | Grok 4.5 | `grok-implementer` agent | All implementation in **grok** mode. In **mix** mode: mechanical work the spec fully determines — wiring, CRUD, boilerplate, make-the-types-match. Requires the [Grok CLI](https://x.ai/cli). |
+| Research / review | Grok 4.5 | `grok-researcher` / `grok-reviewer` agents | Not implementation lanes: breadth-first live-web/X research (`grok-researcher`), or a cold second review lens on a diff (`grok-reviewer`). Codebase lookups (where-is-X-defined, list-callers, inventories) go to a cheap in-process read-only agent instead — faster and more accurate for file:line work than an external CLI hop. |
 | Judgment | Fable 5 | `fable-advisor` agent | Not an implementation lane. See "Commitment boundaries" below. |
 
-Implementation goes to ONE lane — never race the CLI lanes on the same spec, even for correctness-critical work. Assurance comes from the review gauntlet (cross-vendor cold review of the diff), not from duplicate implementations; the architect judging two diffs pays twice for typing and once more for the judging.
+Implementation goes to ONE lane — never race the CLI lanes on the same spec, even for correctness-critical work. Assurance comes from reviewing the diff (see "Review tiers"), not from duplicate implementations; the architect judging two diffs pays twice for typing and once more for the judging.
 
-The fallback chain is fixed and every step is announced explicitly, never silently absorbed: if the default lane is unavailable (service offline, auth failure, usage limit, CLI missing, timeout), re-route the same spec to the other CLI lane — cross-vendor separation survives the outage. If both CLI lanes are unavailable, the final fallback is always a Claude Opus subagent (Agent tool, `model: "opus"`). Verification and review do not relax under fallback — a substitute lane makes them matter more.
+The fallback chain is the same in every mode and every step is announced explicitly, never silently absorbed: if the chosen lane is unavailable (service offline, auth failure, usage limit, CLI missing, timeout), re-route the same spec to the other CLI lane if it is installed — cross-vendor separation survives the outage. If both CLI lanes are unavailable, the final fallback is ALWAYS a Claude Opus subagent (Agent tool, `model: "opus"`). Availability is discovered at run time, not declared in config — a user with only one CLI needs no special mode; the chain routes around the gap loudly. Verification and review do not relax under fallback — a substitute lane makes them matter more.
 
-## Choosing your default lane
+## Choosing your implementation routing
 
-`codex-implementer` (GPT-5.6 Sol) is the default implementation lane when nothing says otherwise. To make Grok the default instead, declare it in any CLAUDE.md that applies to the session — canonical form, one line:
+Three modes, declared with one line in any CLAUDE.md that applies to the session — canonical forms:
 
 ```
-fable-advisor: default implementation lane = grok
+fable-advisor: implementation lane = codex   (the unconfigured default)
+fable-advisor: implementation lane = grok
+fable-advisor: implementation lane = mix
 ```
 
-Honor the intent, not the exact string — any clear statement of implementation-lane preference in the user's instructions counts (e.g. "grok is my default implementation lane"). The declaration flips the routing only: the other CLI lane becomes the first fallback, the Opus subagent stays the final fallback, and the spec contract, verification, and review rules apply identically to both lanes.
+- **codex** — every implementation task goes to `codex-implementer`. Fixed; optimizes for fewer subtle bugs over per-task token savings.
+- **grok** — every implementation task goes to `grok-implementer`. Fixed; optimizes for cheap typing when specs are strong.
+- **mix** — the architect routes each task by kind: mechanical work the spec fully determines (wiring, CRUD, boilerplate, make-the-types-match) → grok; correctness-critical work (concurrency, auth/security, migrations, subtle state, anything the spec can't fully pin) → codex at high reasoning. When in doubt, codex. State the chosen lane and why in one line when delegating.
+
+Honor the intent, not the exact string — any clear statement of implementation-lane preference in the user's instructions counts (e.g. "grok is my default implementation lane", "let the orchestrator pick the implementation model"). Mode changes routing only: the fallback chain, spec contract, verification, and review rules apply identically in all three.
 
 ## The spec contract
 
@@ -58,7 +64,7 @@ A spec you can't finish writing is a signal the decision isn't made yet — that
 
 ## Parallelism
 
-Independent specs (no shared files, no ordering dependency) launch as parallel agents in a single message. Sequential chains and single-file surgery stay serial.
+Independent specs (no shared files, no ordering dependency) launch as parallel agents in a single message. Sequential chains and single-file surgery stay serial. One writer per module or package; schema and migration work is always serial — "no shared files" is necessary but not sufficient, because adjacent files, generated code, and lockfiles collide too.
 
 ## Commitment boundaries
 
@@ -68,7 +74,17 @@ Consult `fable-advisor` (read-only, verdict in under 300 words) at the moments t
 - Whenever the same problem has resisted two distinct attempts
 - Once before declaring a multi-step deliverable done
 
-Pass it the decision, the constraints, the options considered, and the exact file paths to read — it is read-only, and a skeptic is only as good as the code it is pointed at. Act on the verdict or surface the disagreement — never silently ignore it. (If the session itself already runs on Fable, the advisor still earns its keep as a context-clean skeptic reading the actual code.)
+Pass it the decision, the constraints, the options considered, the exact file paths to read, and the decisive evidence pasted in (failing test output, traces, the numbers) — the advisor cannot run commands, and a verdict on unstated evidence is a guess. Act on the verdict or surface the disagreement — never silently ignore it. (If the session itself already runs on Fable, the advisor still earns its keep as a context-clean skeptic reading the actual code.)
+
+## Review tiers
+
+Verification (below) is not review. Verification asks "did it do what the spec said, and do the checks pass?" Cold review asks "what is wrong that the author — and the architect's own framing — didn't see?" The architect reading a lane's diff is verification with cross-vendor eyes, not cold review: the architect wrote the spec and is primed by it. Tier by the diff:
+
+- **Mechanical diffs** (renames, literal moves, no behavior change): verification only.
+- **Behavior-bearing diffs**: add one cold `grok-reviewer` pass — diff only, no intent framing.
+- **Security / auth / concurrency / migration paths**: additionally have a strong Claude model read every error / nil / empty / timeout branch for silent failure (a read-only session pass or an Opus subagent). Omission-type misses never appear in any reviewer's report, so this tier is about completeness, not a second opinion.
+
+If in doubt whether a diff is mechanical, it isn't.
 
 ## Verification
 

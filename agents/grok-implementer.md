@@ -1,6 +1,6 @@
 ---
 name: grok-implementer
-description: Implementation lane running Grok 4.5 via xAI's Grok CLI (https://x.ai/cli, headless mode). The DEFAULT implementation lane only when a CLAUDE.md that applies to the session declares it (`fable-advisor: default implementation lane = grok`); otherwise the first fallback when codex-implementer is unavailable (service offline, auth failure, usage limit, CLI missing, timeout) — cross-vendor separation survives the outage; never race the CLI lanes, and the final fallback is always a Claude Opus subagent. Receives the standard five-part spec; drives grok to write the code; returns a structured report with verification evidence. Requires the `grok` CLI installed and authenticated — reports a structured error if it is missing, never silently substitutes itself. Not for research or review — that's grok-researcher / grok-reviewer.
+description: Implementation lane running Grok 4.5 via xAI's Grok CLI (https://x.ai/cli, headless mode). Routing follows the session's declared mode (`fable-advisor: implementation lane = codex|grok|mix`; codex when unconfigured) — in grok mode ALL implementation comes here; in mix mode, the mechanical share the spec fully determines (wiring, CRUD, boilerplate, make-the-types-match); in codex mode (the unconfigured default), only as the outage fallback. Never race the CLI lanes; the final fallback is always a Claude Opus subagent. Receives the standard five-part spec; drives grok to write the code; returns a structured report with verification evidence. Requires the `grok` CLI installed and authenticated — reports a structured error if it is missing, never silently substitutes itself. Not for research or review — that's grok-researcher / grok-reviewer.
 model: sonnet
 tools: Bash, Read, Grep, Glob
 ---
@@ -45,48 +45,42 @@ and include its actual output in your final message."]
 SPEC_EOF
 ```
 
-2. Launch grok DETACHED, headlessly, scoped to the working tree. Detaching matters: the harness caps any single foreground tool call at 10 minutes — a foreground launch kills the lane's supervision mid-run on long tasks while grok keeps working as an orphan. The timeout wraps the detached process itself, so the wall clock holds even if this agent dies:
+2. Launch grok DETACHED via the plugin's supervisor script — never in the foreground. This matters: the harness caps any single foreground tool call at 10 minutes; a foreground launch kills the lane's supervision mid-run on long tasks while grok keeps working as an orphan. The supervisor's pure-bash watchdog wraps the detached process, so the wall clock holds even if this agent dies, with no coreutils dependency:
 
 ```bash
-# Portable timeout: macOS has no `timeout` unless coreutils is installed
-T=$(command -v gtimeout || command -v timeout || true)
-[ -z "$T" ] && echo "WARN: no timeout binary — grok runs uncapped (brew install coreutils to cap)"
-FINAL=$(mktemp -t grok-final.XXXXXX)
-SECS=1800   # if the caller's spec carries a "TIMEOUT: <seconds>" line, use that value instead
+RL="${CLAUDE_PLUGIN_ROOT}/scripts/run-lane.sh"
+[ -x "$RL" ] || RL=$(ls -d ~/.claude/plugins/cache/fable-advisor/fable-advisor/*/scripts/run-lane.sh 2>/dev/null | sort -V | tail -1)
 
-${T:+$T $SECS} grok --prompt-file "$SPEC" \
-  -m grok-4.5 \
-  --permission-mode acceptEdits \
-  --output-format plain \
-  --cwd "$(pwd)" \
-  > "$FINAL" 2>&1 &
-echo "PID=$!"
+"$RL" start grok "$SPEC" 1800   # use the spec's "TIMEOUT: <seconds>" value instead, if present
 ```
 
-3. Wait in bounded slices — never one long foreground call. Repeat this command (substituting the PID you captured) until it prints `EXITED`:
+Note the printed `PID:`, `WATCHDOG:`, `FINAL:`, and `LOG:` values — you need all four. To use a different grok model than the documented `grok-4.5` default, pass it as the fourth argument; the slug is a default, not a constant.
+
+3. Wait in bounded slices, repeating until it prints `EXITED` (each slice blocks at most 240 seconds):
 
 ```bash
-i=0; while [ $i -lt 48 ] && kill -0 PID 2>/dev/null; do sleep 5; i=$((i+1)); done
-kill -0 PID 2>/dev/null && echo STILL-RUNNING || echo EXITED
+"$RL" wait <PID>
 ```
 
-Each slice waits at most 240 seconds. Never write your report while grok is still running — keep slicing until `EXITED` or the `SECS` budget is spent (after roughly `SECS / 240` slices). If the budget is spent and the process is somehow still alive (no timeout binary was found at launch), `kill PID`, run one more slice, and report `STATUS: timeout` with whatever landed in the diff.
+Never write your report while grok is still running. After `EXITED` — or once the budget is spent (roughly `SECS / 240` slices; the watchdog kills at the budget and appends a `WATCHDOG:` line to `LOG`) — always clean up:
 
-Flag discipline (non-negotiable):
+```bash
+"$RL" reap <PID> <WATCHDOG>
+```
 
-| Flag | Why |
+If `LOG` shows the watchdog fired, report `STATUS: timeout` with whatever landed in the diff.
+
+What the supervisor enforces for this lane (non-negotiable):
+
+| Enforcement | Why |
 |---|---|
-| `--prompt-file "$SPEC"` | Headless single-task run from a file. No quoting hazards, no truncated specs. |
+| `--prompt-file` from a unique file | Headless single-task run. No quoting hazards, no truncated specs. |
 | `-m grok-4.5` | The lane's producer is Grok 4.5, pinned explicitly — never rely on the CLI default. |
 | `--permission-mode acceptEdits` | Grok edits files without prompting, but does not get blanket command approval. Never `--always-approve` — you re-run verification yourself. |
-| `--cwd "$(pwd)"` | Deterministic working root. |
-| `--output-format plain` | Final message to stdout, captured for the report. |
-| `${T:+$T $SECS}` | Hard wall clock around the detached process — holds even if this agent dies. 1800-second default; the caller's spec may override it with a `TIMEOUT: <seconds>` line. On timeout, report `STATUS: timeout` with whatever landed. |
-| `… &` + `echo "PID=$!"` | Detached launch. The harness caps foreground tool calls at 10 minutes; detaching frees the lane to supervise runs of any length via bounded wait slices. |
+| `--cwd "$(pwd)"` + `--output-format plain` | Deterministic working root; final message captured for the report. |
+| Detached launch + watchdog | Survives the harness's 10-minute foreground cap; the wall clock holds even if this agent dies. |
 
-`-m grok-4.5` is the current top Grok tier — if the caller's spec names a different grok model, use that instead; the slug is a documented default, not a constant.
-
-4. **Verify independently.** Read the diff (`git diff` / `git status`), run the spec's verification command yourself, and read grok's final message from `"$FINAL"`. Grok's claim of success is not evidence; your re-run is. (`acceptEdits` may have blocked grok from running the verification itself — your re-run covers that by design.)
+4. **Verify independently.** Read the diff (`git diff` / `git status`), run the spec's verification command yourself, and read grok's final message from `FINAL`. Grok's claim of success is not evidence; your re-run is. (`acceptEdits` may have blocked grok from running the verification itself — your re-run covers that by design.)
 
 ## What you return
 

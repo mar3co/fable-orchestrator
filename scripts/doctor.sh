@@ -8,13 +8,18 @@ ok()  { printf '  ok   %s\n' "$1"; PASS=$((PASS+1)); }
 warn(){ printf '  warn %s\n' "$1"; WARN=$((WARN+1)); }
 bad() { printf '  FAIL %s\n' "$1"; FAIL=$((FAIL+1)); }
 
+VER=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$(dirname "$0")/../.claude-plugin/plugin.json" 2>/dev/null | head -1)
+echo "fable-advisor doctor — mar3co/fable-advisor fork, v${VER:-unknown}"
+echo "(not the upstream DannyMac180 plugin: codex-default modes, no lane racing)"
+echo
+
 T=$(command -v gtimeout || command -v timeout || true)
 
 echo "timeout binary"
 if [ -n "$T" ]; then
   ok "found: $T"
 else
-  warn "none found — lanes run uncapped (macOS: brew install coreutils)"
+  warn "none found — doctor's own live checks run uncapped (lanes are unaffected: run-lane.sh ships its own pure-bash watchdog)"
 fi
 
 echo "codex lane (default implementer: gpt-5.6-sol)"
