@@ -52,7 +52,14 @@ API-key-user guidance.
 - If nothing changes (re-run with same choices), say "no changes needed" and
   list what was verified — never silently rewrite.
 - Lines written are exactly the two from the README's "Make it always-on"
-  section (trigger + mode declaration).
+  section (trigger + mode declaration). The trigger is written in its
+  Fable-gated form — "When the session model is Fable, without being
+  reminded: …" — so sessions on other models (e.g. Opus) skip the flow; the
+  README's canonical lines change to this form as part of this feature. The
+  mode line stays unconditional (it is inert without the trigger). A
+  pre-existing unconditional trigger still counts as "equivalent" for the
+  skip check — the wizard offers to upgrade it to the gated form rather than
+  duplicating it.
 - Missing CLIs: print install/login commands (`npm i -g @openai/codex` +
   `codex login`; https://x.ai/cli + `grok login`) — never execute them.
 
