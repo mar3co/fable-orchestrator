@@ -75,9 +75,10 @@ existing setting, mark the matching option "(current setting)".
 
 If detection found a trigger line that references the orchestration skill but
 is NOT Fable-gated (does not begin "When the session model is Fable") in the
-file the user picked, ask one follow-up question: offer to upgrade it to the
-gated form, explaining that the unconditional form also fires in non-Fable
-(e.g. Opus) sessions.
+file the user picked, ask one follow-up question in a second AskUserQuestion
+call (it cannot join the first call — whether it applies depends on the scope
+answer): offer to upgrade the line to the gated form, explaining that the
+unconditional form also fires in non-Fable (e.g. Opus) sessions.
 
 ## Step 3 — Write, idempotently
 

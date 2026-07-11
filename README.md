@@ -94,12 +94,12 @@ claude plugin update fable-orchestrator@fable-orchestrator
 
 ## Choose your implementation routing
 
-(`/fable-orchestrator:setup` writes this line for you — this section is the manual path.) One line in any CLAUDE.md that applies to your session — grok is the default when nothing is declared:
+(`/fable-orchestrator:setup` writes this line for you — this section is the manual path.) Choose one line for any CLAUDE.md that applies to your session — grok is the default when nothing is declared:
 
 ```
-fable-orchestrator: implementation lane = grok
-fable-orchestrator: implementation lane = codex
-fable-orchestrator: implementation lane = mix
+- fable-orchestrator: implementation lane = grok
+- fable-orchestrator: implementation lane = codex
+- fable-orchestrator: implementation lane = mix
 ```
 
 - **grok** — everything goes to Grok 4.5. Cheap typing when your specs are strong, with assurance from verification and the review tiers.
