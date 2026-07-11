@@ -20,6 +20,31 @@ Implementation always goes to ONE lane — lanes are never raced on the same spe
 
 The plugin ships the **orchestration skill** — the routing doctrine that teaches the session when to use each lane, the cost discipline that keeps the expensive model's own token volume minimal (emit judgment not volume, keep context lean, reason once then hand off), the five-part spec contract that makes context-free delegation safe, and the verification rules that keep cheap lanes honest.
 
+## How routing works
+
+```mermaid
+flowchart TD
+    T["Task arrives"] --> Q{"Trivial edit?<br/>(few-line fix, rename, doc tweak)"}
+    Q -->|yes| INLINE["Architect edits inline"]
+    Q -->|no| K{"What kind of work?"}
+
+    K -->|implementation| DEF{"CLAUDE.md declares grok<br/>as default lane?"}
+    DEF -->|"no — unconfigured default"| CODEX["codex-implementer<br/>GPT-5.6 Sol · high reasoning"]
+    DEF -->|yes| GROK["grok-implementer<br/>Grok 4.5"]
+    CODEX -->|"unavailable — announced"| GROK
+    GROK -->|"unavailable — announced"| OPUS["Claude Opus subagent<br/>always the final fallback"]
+
+    K -->|"live web/X research,<br/>codebase lookups"| RES["grok-researcher<br/>Grok 4.5 · read-only"]
+    K -->|"cold review of a<br/>behavior-bearing diff"| REV["grok-reviewer<br/>Grok 4.5 · diff-only"]
+    K -->|"commitment boundary:<br/>architecture, migration, API shape,<br/>two failed attempts"| ADV["fable-advisor<br/>Fable 5 · advises only"]
+
+    CODEX --> VER["Architect verifies:<br/>reads the diff, re-runs the<br/>spec's verification command"]
+    GROK --> VER
+    OPUS --> VER
+```
+
+The diagram shows the unconfigured chain (codex → grok → Opus). When your CLAUDE.md declares grok the default, the chain mirrors: grok → codex → Opus. Either way the Opus subagent is always the terminal fallback, every substitution is announced, and verification never relaxes under fallback.
+
 ## Install
 
 ```
