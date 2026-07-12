@@ -2,6 +2,10 @@
 
 **fable-orchestrator**, originally derived from [DannyMac180/fable-advisor](https://github.com/DannyMac180/fable-advisor) at its 3.1.0 and independently maintained since 2026-07-10 (detached from the fork network). Plugin updates are version-gated — every change ships with a version bump. Entries 3.1.1–3.5.0 below predate the rename, when this project was the fable-advisor fork; 3.5.0 was never published under that name.
 
+## 1.10.0 — 2026-07-12
+
+- **Codex fast mode**: a new optional CLAUDE.md line — `fable-orchestrator: codex fast mode = on` — opts both codex lanes (implementer and reviewer, in every lane mode) into the Codex CLI's fast service tier. Know the trade: ~1.5x output speed for ~2–2.5x credit burn (never cheaper), ChatGPT sign-in required (API-key auth can't use it). The architect forwards it as a `FAST MODE: on` spec line; the wrappers translate that into `LANE_CODEX_FAST=1`, which makes `run-lane.sh` add `-c service_tier=fast -c features.fast_mode=true` (smoke-tested: flags land only under the variable, grok lanes unaffected). Degrade is loud, never fatal: a fast launch that dies early is relaunched once at standard tier and the report carries a `FAST MODE: did not apply` line. `doctor.sh` reads the setting (project scope over user scope) and, when on, live-checks the fast tier — a fast-only failure is a warning with the ChatGPT-sign-in pointer, not a lane failure. Setup gains a fast-mode question (asked right after lane mode, off by default) with idempotent write rules; absence of the line means off.
+
 ## 1.9.0 — 2026-07-12
 
 Adopted from field use (#4, #5).

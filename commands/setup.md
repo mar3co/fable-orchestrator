@@ -1,5 +1,5 @@
 ---
-description: Post-install setup wizard — choose your implementation lane mode (grok / codex / mix), pick user- or project-scope CLAUDE.md, optionally make the orchestration flow always-on, and validate the lanes
+description: Post-install setup wizard — choose your implementation lane mode (grok / codex / mix), toggle codex fast mode, pick user- or project-scope CLAUDE.md, optionally make the orchestration flow always-on, and validate the lanes
 ---
 
 # fable-orchestrator setup
@@ -12,16 +12,19 @@ guidance.
 
 ## Canonical lines
 
-These are the only lines this wizard ever writes (only the mode value varies):
+These are the only lines this wizard ever writes (only the mode and fast-mode
+values vary):
 
 ```
 - When the session model is Fable, without being reminded: non-trivial implementation runs the fable-orchestrator architect-as-orchestrator flow — invoke the fable-orchestrator:orchestration skill before delegating and follow it as authoritative for routing, verification, review tiers, and advisor consults.
 - fable-orchestrator: implementation lane = <grok|codex|mix>
+- fable-orchestrator: codex fast mode = <on|off>
 ```
 
 The trigger is Fable-gated on purpose — sessions on other models read the
 condition and skip the flow. The mode line stays unconditional: it is inert
-without the trigger.
+without the trigger. The fast-mode line is written only when the user turns
+fast mode on, or to rewrite an existing line — absence means off.
 
 ## Step 1 — Detect
 
@@ -34,6 +37,7 @@ for f in "$HOME/.claude/CLAUDE.md" "./CLAUDE.md"; do
   if [ -f "$f" ]; then
     echo "$f: exists"
     grep -n "fable-orchestrator: implementation lane" "$f" || true
+    grep -n "fable-orchestrator: codex fast mode" "$f" || true
     grep -n "fable-orchestrator:orchestration" "$f" || true
   else
     echo "$f: missing"
@@ -44,15 +48,16 @@ git rev-parse --show-toplevel 2>/dev/null || echo "not a git repo"
 
 Present the results as a short status table: one row per CLI (✅ installed /
 ⚠️ not installed, with the install pointer from step 3), one row per scope
-showing what is already configured ("lane = grok, always-on trigger present"
-or "— none"). Auth is NOT checked here — that is doctor's job in step 4.
+showing what is already configured ("lane = grok, fast mode on, always-on
+trigger present" or "— none"). Auth is NOT checked here — that is doctor's job in step 4.
 
-If BOTH scopes carry a lane line, state plainly: project scope wins in this
-repo per CLAUDE.md precedence; the user-scope setting applies everywhere else.
+If BOTH scopes carry a lane or fast-mode line, state plainly: project scope
+wins in this repo per CLAUDE.md precedence; the user-scope setting applies
+everywhere else.
 
 ## Step 2 — Ask
 
-One AskUserQuestion call with three questions. Wherever the detection found an
+One AskUserQuestion call with four questions. Wherever the detection found an
 existing setting, mark the matching option "(current setting)".
 
 1. **Lane mode** — grok / codex / mix:
@@ -65,11 +70,17 @@ existing setting, mark the matching option "(current setting)".
    Annotate every option with detected CLI status. A missing CLI never hides a
    mode — annotate it "CLI not found — this mode would run on its fallback
    chain until you install it"; flag mix when either CLI is missing.
-2. **Scope** — user (`~/.claude/CLAUDE.md`, every project on this machine) /
+2. **Codex fast mode** — off / on, off first and marked as the default. On:
+   codex lanes run the Codex CLI's fast service tier — ~1.5x output speed for
+   ~2–2.5x credit burn, requires ChatGPT sign-in (API-key auth cannot use it).
+   Relevant in every lane mode, since codex-reviewer cold-reviews grok diffs
+   even in grok mode. If the fast tier fails at run time the lanes retry once
+   at standard tier and report the downgrade.
+3. **Scope** — user (`~/.claude/CLAUDE.md`, every project on this machine) /
    project (`./CLAUDE.md`, this repo only, overrides user scope here). Show
    existing config on each option. If the working directory is not inside a
    git repository, warn on the project option and recommend user scope.
-3. **Always-on** — yes (write trigger + mode line: the flow runs every Fable
+4. **Always-on** — yes (write trigger + mode line: the flow runs every Fable
    session automatically) / no (mode line only: invoke the
    fable-orchestrator:orchestration skill manually).
 
@@ -87,6 +98,10 @@ Touch only the chosen file:
 - Create it if missing.
 - **Lane line**: if a `fable-orchestrator: implementation lane =` line exists,
   replace it in place; otherwise append the canonical mode line.
+- **Fast-mode line**: if a `fable-orchestrator: codex fast mode` line exists,
+  rewrite it in place to the chosen value. Otherwise append the canonical line
+  only when the user chose on — never append an `= off` line where none
+  exists (absence already means off).
 - **Trigger** (only when always-on was chosen): an existing trigger means a
   line that functions as a standing always-on instruction to run the flow —
   the canonical forms contain "without being reminded" plus the skill
@@ -111,6 +126,6 @@ cost. On yes, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.sh"` and show
 the result. On skip, note they can run `/fable-orchestrator:doctor` any time
 later.
 
-Close with a summary: chosen mode and what routes where, scope, always-on
-status, doctor result (or the skip note), and a final reminder — start
-architect sessions with `/model fable`.
+Close with a summary: chosen mode and what routes where, fast-mode status,
+scope, always-on status, doctor result (or the skip note), and a final
+reminder — start architect sessions with `/model fable`.

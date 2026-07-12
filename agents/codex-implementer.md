@@ -60,6 +60,8 @@ SPEC_EOF
 "$RL" start codex "$SPEC" 1800   # use the spec's "TIMEOUT: <seconds>" value instead, if present
 ```
 
+If the spec contains a `FAST MODE: on` line, prefix the launch with the supervisor's env var — `LANE_CODEX_FAST=1 "$RL" start codex "$SPEC" 1800` — which adds the fast service tier (~1.5x speed, ~2–2.5x credits; requires ChatGPT sign-in). Like `TIMEOUT:`, that line is lane configuration, not part of the task: do not copy it into the spec text codex reads.
+
 Note the printed `PID:`, `WATCHDOG:`, `FINAL:`, and `LOG:` values — you need all four. To use a different codex model than the documented `gpt-5.6-sol` default, pass it as the fourth argument; the slug is a default, not a constant.
 
 3. Wait in bounded slices, repeating until it prints `EXITED` (each slice blocks at most 240 seconds):
@@ -78,7 +80,7 @@ Never write your report while codex is still running. After `EXITED` — or once
 
 Paste reap's output line into the report's `PROCESS:` field — it is the report's evidence that the lane's process group did not survive your turn (group-level evidence: a descendant that detached into its own session escapes any group check, which is why the caller treats the tree, not this line, as the final authority). If it prints a `WARNING: group still alive` line instead of `(group dead)`, re-run reap once or twice; if the warning persists, paste the warning line into `PROCESS:` and report `STATUS: partial` — never report a clean completion while anything may survive.
 
-If `LOG` shows the watchdog fired, report `STATUS: timeout` with whatever landed in the diff. If codex instead dies within the first minute leaving no diff (`git status` clean, `FINAL` empty or a couple of lines of narration), reap and relaunch once with the identical spec, noting the retry in the report; a second early death is `STATUS: unavailable`, with `FINAL`'s tail pasted into `REASON` so the caller can tell an outage from a CLI that runs but does nothing.
+If `LOG` shows the watchdog fired, report `STATUS: timeout` with whatever landed in the diff. If codex instead dies within the first minute leaving no diff (`git status` clean, `FINAL` empty or a couple of lines of narration), reap and relaunch once with the identical spec, noting the retry in the report — and if fast mode was on for the failed launch, the relaunch DROPS `LANE_CODEX_FAST` (fast mode needs ChatGPT sign-in and model support, and either gap surfaces as exactly this early death; the work must not die for a speed nicety). A second early death is `STATUS: unavailable`, with `FINAL`'s tail pasted into `REASON` so the caller can tell an outage from a CLI that runs but does nothing.
 
 What the supervisor enforces for this lane (non-negotiable):
 
@@ -89,6 +91,7 @@ What the supervisor enforces for this lane (non-negotiable):
 | `--skip-git-repo-check` + `--cd "$(pwd)"` | Deterministic working root; works outside git repos. |
 | Spec via stdin from a file | No quoting hazards, no truncated specs. |
 | Detached launch + watchdog | Survives the harness's 10-minute foreground cap; the wall clock holds even if this agent dies. |
+| `-c service_tier=fast -c features.fast_mode=true` (only under `LANE_CODEX_FAST=1`) | Opt-in fast tier when the spec says `FAST MODE: on`; never applied by default. |
 
 4. **Verify from evidence; re-run only when needed.** Read the diff (`git diff` / `git status`) and codex's final message from `FINAL`. Then check `LOG` — the machine-captured CLI transcript, not the model's summary — for the spec's verification command actually executing and passing as the run's final act, with no file edits after it. If that evidence is present, cite the log excerpt in your report and skip the re-run — running it again proves nothing new and wastes the suite's wall clock. If it is missing, ambiguous, or followed by further edits, run the verification command yourself. Codex's *message* claiming success is never evidence — captured execution or your own re-run is. Say in the report which one you have.
 
@@ -102,6 +105,7 @@ CHANGES: [file — one-line summary, per file, from the actual diff]
 VERIFIED: [verification command — evidence: captured-log excerpt (command ran and passed as the run's final act) or your own re-run output; say which]
 CODEX SAID: [one-line summary of codex's final message, note any disagreement with the diff]
 PROCESS: [reap's output, pasted — e.g. "REAPED: 12345 (group dead)"; a report without it means the lane may still be running]
+FAST MODE: [only when the spec requested it: "applied" | "did not apply — ran standard tier after the fast launch died early"]
 GAPS: [spec ambiguities, unfinished items, or "none"]
 ```
 

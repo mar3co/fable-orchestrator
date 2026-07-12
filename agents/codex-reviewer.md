@@ -61,6 +61,8 @@ RL="${CLAUDE_PLUGIN_ROOT}/scripts/run-lane.sh"
 "$RL" start codex-review "$SPEC" 600   # use the caller's "TIMEOUT: <seconds>" value instead, if present
 ```
 
+If the caller's request contains a `FAST MODE: on` line, prefix the launch with the supervisor's env var — `LANE_CODEX_FAST=1 "$RL" start codex-review "$SPEC" 600` — which adds the fast service tier (~1.5x speed, ~2–2.5x credits; requires ChatGPT sign-in). Like `TIMEOUT:`, it is lane configuration, not review context: never copy it into the prompt codex reads (cold discipline covers it). If a fast launch dies within the first minute with `FINAL` empty or a couple of lines of narration, reap and relaunch once WITHOUT `LANE_CODEX_FAST` (fast mode needs ChatGPT sign-in and model support, and either gap surfaces as exactly this early death) — note the downgrade in the report. A second early death is `STATUS: unavailable`, with `FINAL`'s tail pasted into `REASON`.
+
 Note the printed `PID:`, `WATCHDOG:`, `FINAL:`, and `LOG:` values. Repeat `"$RL" wait <PID>` until it prints `EXITED` — every slice as a normal FOREGROUND command, never backgrounded, never a "wait for a notification" you end your turn on (no notification re-wakes a finished agent; a detached CLI would keep running unsupervised). Then always `"$RL" reap <PID> <WATCHDOG>`. If your turn must instead end early while codex may still be running, reap first and report `STATUS: partial` with whatever landed. The `codex-review` lane runs `--sandbox read-only` — a reviewer never edits files, and gets no write access to try. If `LOG` shows the watchdog fired, report `STATUS: timeout` with whatever landed.
 
 4. **Distill.** Read `"$FINAL"` (per batch, if the size guard split the diff). Keep each finding as severity + one-line claim + `file:line`. A finding codex didn't anchor to a `file:line` gets labeled `uncited` — pass it through flagged, never silently promote or drop it. Spot-check citations against the WORKING TREE (Read the cited line; citations are post-image, so they will usually not appear as literal numbers in the unified diff text — do not flag on that basis); a citation whose line doesn't exist or doesn't match the claim is itself worth flagging.
@@ -74,6 +76,7 @@ DIFF: [what was reviewed — ref or file, and its size in lines]
 FINDINGS: [severity | one-line claim | file:line — one per line; "none" if clean]
 UNCITED: [claims codex made without file:line anchors, or "none"]
 UNCOVERED: [files or hunks not reviewed (size guard), or "none"]
+FAST MODE: [only when the caller requested it: "applied" | "did not apply — ran standard tier after the fast launch died early"]
 FULL REPORT: [path(s) to the raw output file(s), for the caller to pull detail]
 ```
 

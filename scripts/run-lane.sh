@@ -10,6 +10,8 @@
 #   wait <pid> [slice-secs]                        one bounded slice (default 240s),
 #                                                  prints EXITED or STILL-RUNNING
 #   reap <pid> [watchdog-pid]                      kill lane group + watchdog, cleanup
+# Env: LANE_CODEX_FAST=1 adds the fast service tier to codex lane launches
+# (~1.5x speed, ~2-2.5x credits; needs ChatGPT sign-in). Grok lanes ignore it.
 #
 # Process-group discipline: `set -m` gives each background job its own process
 # group (PGID = PID), and every kill targets the GROUP (`kill -- -PID`) — the
@@ -41,7 +43,9 @@ start)
       command -v codex >/dev/null 2>&1 || { echo "STATUS: unavailable"; echo "REASON: codex not on PATH"; exit 1; }
       SANDBOX=workspace-write
       [ "$LANE" = codex-review ] && SANDBOX=read-only   # a reviewer never edits files
-      codex exec --model "${MODEL:-gpt-5.6-sol}" -c model_reasoning_effort=high \
+      FAST=""   # LANE_CODEX_FAST=1 opts into the fast service tier (~1.5x speed, ~2-2.5x credits; needs ChatGPT sign-in)
+      [ "${LANE_CODEX_FAST:-}" = "1" ] && FAST="-c service_tier=fast -c features.fast_mode=true"
+      codex exec --model "${MODEL:-gpt-5.6-sol}" -c model_reasoning_effort=high $FAST \
         --sandbox "$SANDBOX" --skip-git-repo-check --cd "$(pwd)" \
         --output-last-message "$FINAL" - < "$SPEC" > "$LOG" 2>&1 &
       ;;

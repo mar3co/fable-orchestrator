@@ -76,7 +76,7 @@ Then start your session as the architect:
 /model fable
 ```
 
-Verify the lanes before a task needs them — checks presence of both CLIs (a missing one is a warning, not a failure), auth and model access via one tiny live call per installed CLI, and prints exactly which plugin and version you're running. The setup wizard already offers this check as its final step:
+Verify the lanes before a task needs them — checks presence of both CLIs (a missing one is a warning, not a failure), auth and model access via one tiny live call per installed CLI, and prints exactly which plugin and version you're running. With codex fast mode on (see "Codex fast mode" below), the codex check runs at the fast tier and diagnoses a fast-only failure as a warning — the lanes degrade to standard tier — rather than a lane failure. The setup wizard already offers this check as its final step:
 
 ```
 /fable-orchestrator:doctor
@@ -108,6 +108,16 @@ claude plugin update fable-orchestrator@fable-orchestrator
 - **mix** — the architect routes each task by kind: mechanical, spec-determined work → grok; correctness-critical work (concurrency, auth, migrations, subtle state) → codex; in doubt → codex.
 
 The skill honors intent over exact syntax — "let the orchestrator pick the implementation model" selects mix just as well. Availability is discovered, not declared: you don't need a special mode just because you only have one CLI; an unavailable lane falls back loudly (other CLI lane if installed, then always a Claude Opus subagent). Modes change routing only — the spec contract, verification, and review rules are identical in all three.
+
+### Codex fast mode
+
+One more optional line opts the codex lanes into the Codex CLI's fast service tier (`/fable-orchestrator:setup` can write it too):
+
+```
+- fable-orchestrator: codex fast mode = on
+```
+
+Absent or `off` means off. When on, both codex lanes — implementer and reviewer, in every lane mode — launch with `service_tier=fast`. Know the trade before turning it on: fast is ~1.5x output speed for ~2–2.5x credit burn (it is never cheaper), and it requires ChatGPT sign-in — API-key auth can't use it. If the fast tier fails at run time, the lane retries once at standard tier and reports the downgrade loudly; doctor checks the fast tier live whenever the line is on. Grok lanes are unaffected.
 
 ## Make it always-on
 

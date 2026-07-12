@@ -77,5 +77,22 @@ R=$("$RL" wait "$PID" 30)
 "$RL" reap "$PID" "$WD" >/dev/null
 group_alive "$PID" && fail "grok-research group survived reap" || pass "grok-research group reaped"
 
+echo "test 6: LANE_CODEX_FAST=1 gates the fast-tier flags to codex lanes only"
+export LANE_CODEX_FAST=1
+launch 2 2 600
+sleep 1
+grep -q 'service_tier=fast' "$SHIM/last-args" && grep -q 'features.fast_mode=true' "$SHIM/last-args" \
+  && pass "codex lane carries both fast-tier overrides" || fail "codex lane missing fast-tier overrides: $(cat "$SHIM/last-args")"
+"$RL" reap "$PID" "$WD" >/dev/null
+launch 2 2 600 grok
+sleep 1
+grep -q 'fast' "$SHIM/last-args" && fail "grok lane leaked fast-tier flags" || pass "grok lane unaffected by LANE_CODEX_FAST"
+"$RL" reap "$PID" "$WD" >/dev/null
+unset LANE_CODEX_FAST
+launch 2 2 600
+sleep 1
+grep -q 'service_tier=fast' "$SHIM/last-args" && fail "fast-tier flags present without LANE_CODEX_FAST" || pass "codex lane omits fast-tier flags when unset"
+"$RL" reap "$PID" "$WD" >/dev/null
+
 printf '\n%s\n' "$([ "$FAILS" -eq 0 ] && echo "ALL PASS" || echo "$FAILS FAILURE(S)")"
 [ "$FAILS" -eq 0 ]

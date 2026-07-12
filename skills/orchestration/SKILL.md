@@ -12,7 +12,7 @@ The session is the architect: it owns requirements, architecture, decomposition,
 Every delegation, no exceptions — details in the sections below:
 
 1. **Mode** — grok (unconfigured default) | codex | mix, per the session's CLAUDE.md declaration.
-2. **Spec** — all five parts, an honest `TIMEOUT:` when it differs from the default, the smallest verification bundle that proves the change.
+2. **Spec** — all five parts, an honest `TIMEOUT:` when it differs from the default (plus `FAST MODE: on` on codex-lane delegations when configured), the smallest verification bundle that proves the change.
 3. **Report back** — read the diff; demand execution evidence (captured log or wrapper re-run), never a claim. A completion without a structured report is an error state, not a success — settle the lane (see "A completion without a report is not a success") before touching the branch.
 4. **Review tier** — caller-declared spike or mechanical diff: verify only (spikes are declared, never inferred). Behavior-bearing: one cold review from the model family that did NOT implement it (if that lane is down: Opus cold, announced). Security/auth/concurrency: add the silent-failure completeness read.
 5. **Findings** — refutation pass, cited-first in severity order; max two respec rounds, then surface residuals to the user.
@@ -67,6 +67,16 @@ fable-orchestrator: implementation lane = mix
 
 Honor the intent, not the exact string — any clear statement of implementation-lane preference in the user's instructions counts (e.g. "grok is my default implementation lane", "let the orchestrator pick the implementation model"). Mode changes routing only: the fallback chain, spec contract, verification, and review rules apply identically in all three.
 
+### Codex fast mode
+
+One more optional line opts the codex lanes into the Codex CLI's fast service tier — canonical form:
+
+```
+fable-orchestrator: codex fast mode = on
+```
+
+Absent or `off` means off. When on, add a `FAST MODE: on` line to every codex-lane delegation — implementer and reviewer, in every lane mode (codex-reviewer cold-reviews grok diffs even in grok mode); the lane wrappers translate it into the supervisor's fast-tier flags. Fast is a speed trade, not a saving: ~1.5x output speed for ~2–2.5x credit burn, and it requires ChatGPT sign-in (API-key auth cannot use it). If the fast launch fails, the lane retries once at standard tier and reports the downgrade — a loud degrade, never a blocked task. Grok lanes are unaffected. As with the lane mode, honor the intent, not the exact string.
+
 ## The spec contract
 
 Implementers share none of your conversation context. Every delegation prompt carries all five parts:
@@ -77,7 +87,7 @@ Implementers share none of your conversation context. Every delegation prompt ca
 4. **Constraints** — project conventions, things not to touch
 5. **Verification** — the command(s) that prove it works: the smallest bundle that exercises the change, not the full suite (full suites run at integration points; the command may legitimately run twice — once in the producer's dev loop, once at wrapper acceptance when the captured log is inconclusive — so its cost matters)
 
-Estimate the task's wall clock honestly in every spec and include a `TIMEOUT: <seconds>` line whenever the estimate differs meaningfully from the implementation lanes' 1800-second default (the research/review lanes default to 600). An undersized budget kills a legitimate run mid-flight; an oversized one delays detection of a genuinely hung lane — accuracy beats generosity in both directions.
+Estimate the task's wall clock honestly in every spec and include a `TIMEOUT: <seconds>` line whenever the estimate differs meaningfully from the implementation lanes' 1800-second default (the research/review lanes default to 600). An undersized budget kills a legitimate run mid-flight; an oversized one delays detection of a genuinely hung lane — accuracy beats generosity in both directions. When codex fast mode is configured (see "Codex fast mode" above), codex-lane delegations also carry a `FAST MODE: on` line — like `TIMEOUT:`, lane configuration alongside the spec, not part of it.
 
 A spec you can't finish writing is a signal the decision isn't made yet — that's architect work, not a reason to hand the ambiguity to a cheaper model.
 

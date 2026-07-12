@@ -22,19 +22,43 @@ else
   warn "none found — doctor's own live checks run uncapped (lanes are unaffected: run-lane.sh ships its own pure-bash watchdog)"
 fi
 
-echo "codex lanes (implementer, reviewer: gpt-5.6-sol)"
+# codex fast mode setting: project CLAUDE.md wins over user scope, absent means off
+FAST_MODE=off
+for f in "$HOME/.claude/CLAUDE.md" "./CLAUDE.md"; do
+  V=$(sed -n 's/.*fable-orchestrator: codex fast mode[[:space:]]*=[[:space:]]*\([A-Za-z]*\).*/\1/p' "$f" 2>/dev/null | head -1)
+  [ -n "$V" ] && FAST_MODE=$(printf '%s' "$V" | tr '[:upper:]' '[:lower:]')
+done
+
+echo "codex lanes (implementer, reviewer: gpt-5.6-sol; fast mode: $FAST_MODE)"
 if ! command -v codex >/dev/null 2>&1; then
   warn "codex CLI not installed — codex lanes degrade: implementation falls back per mode, cold review of grok diffs falls back to an Opus cold pass (install: npm i -g @openai/codex, then: codex login)"
 else
   ok "CLI present: $(codex --version 2>/dev/null | head -1)"
   OUT=$(mktemp -t doctor-codex.XXXXXX)
-  if printf 'Reply with exactly: LANE-OK' | ${T:+$T 180} codex exec \
-       --model gpt-5.6-sol --sandbox workspace-write --skip-git-repo-check \
-       --cd "$(pwd)" --output-last-message "$OUT" - >/dev/null 2>&1 \
-     && grep -q 'LANE-OK' "$OUT"; then
-    ok "auth + gpt-5.6-sol access confirmed"
+  codex_live() {  # $1 = "fast" to run with the fast-tier flags
+    FF=""
+    [ "${1:-}" = fast ] && FF="-c service_tier=fast -c features.fast_mode=true"
+    : > "$OUT"
+    printf 'Reply with exactly: LANE-OK' | ${T:+$T 180} codex exec \
+      --model gpt-5.6-sol $FF \
+      --sandbox workspace-write --skip-git-repo-check \
+      --cd "$(pwd)" --output-last-message "$OUT" - >/dev/null 2>&1 \
+      && grep -q 'LANE-OK' "$OUT"
+  }
+  if [ "$FAST_MODE" = "on" ]; then
+    if codex_live fast; then
+      ok "auth + gpt-5.6-sol access confirmed (fast tier)"
+    elif codex_live; then
+      warn "fast tier failed but standard tier works — lanes will degrade to standard per the retry rule (fast mode needs ChatGPT sign-in, not an API key, and model support; try: codex login)"
+    else
+      bad "live check failed at both tiers (auth or model access) — try: codex login"
+    fi
   else
-    bad "live check failed (auth or model access) — try: codex login"
+    if codex_live; then
+      ok "auth + gpt-5.6-sol access confirmed"
+    else
+      bad "live check failed (auth or model access) — try: codex login"
+    fi
   fi
 fi
 
