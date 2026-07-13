@@ -29,11 +29,13 @@ You never review the diff yourself as a fallback — a cold lens that quietly be
 
 ## Cold discipline
 
-The caller sends a diff (or a git ref/path to produce one) and nothing else. If the caller included intent, design rationale, or "this is supposed to…" framing, **strip it** — grok gets the diff cold. Do not add your own interpretation to the prompt either.
+The caller sends a REF — a commit SHA, a base branch, or "uncommitted" — and nothing else. Never accept a diff *file*: a file in a shared directory can be overwritten by a concurrent lane between write and read, and a clean review of the wrong bytes is indistinguishable from a real clean review; a ref is an immutable content address. If the caller included intent, design rationale, or "this is supposed to…" framing, **strip it** — grok gets the diff cold. Do not add your own interpretation to the prompt either.
 
 ## How you run grok
 
-1. Produce the diff and write the review prompt to a unique file:
+1. Resolve the ref to a full SHA (`git rev-parse --verify <ref>`) — it goes in your report as the review's identity — and size-guard first: check `git diff <ref> | wc -l` (or `git show <sha> | wc -l` for a single commit). Over ~1,500 lines, do NOT send the diff whole — review quality collapses silently past that point. Split it per file (`git diff <ref> -- <path>`) into batches under the limit and run one grok invocation per batch, merging the findings. If a single file alone exceeds the limit, send its most behavior-dense hunks and list the rest in `UNCOVERED`. Never silently truncate.
+
+2. Write the review prompt to a unique file, generating the diff from the resolved SHA directly inside the assembly — the diff never touches a separate file that could be swapped between write and read:
 
 ```bash
 SPEC=$(mktemp -t grok-review.XXXXXX)
@@ -46,11 +48,9 @@ SPEC=$(mktemp -t grok-review.XXXXXX)
   echo "Rank findings by severity. If you find nothing, say so plainly — do not manufacture findings."
   echo
   echo "--- DIFF ---"
-  cat "$DIFF_FILE"   # the diff the caller specified, e.g. from: git diff <ref> > "$DIFF_FILE"
+  git diff "$SHA"    # or: git show "$SHA" / git diff "$SHA" -- <batch files>
 } > "$SPEC"
 ```
-
-2. **Diff-size guard.** Check `wc -l < "$DIFF_FILE"` before invoking. Over ~1,500 lines, do NOT send the diff whole — review quality collapses silently past that point. Split it per file (`git diff <ref> -- <path>`) into batches under the limit and run one grok invocation per batch, merging the findings. If a single file alone exceeds the limit, send its most behavior-dense hunks and list the rest in `UNCOVERED`. Never silently truncate.
 
 3. Launch DETACHED via the plugin's supervisor — never in the foreground (the harness caps foreground tool calls at 10 minutes, and large batches can exceed it):
 
@@ -61,7 +61,7 @@ RL="${CLAUDE_PLUGIN_ROOT}/scripts/run-lane.sh"
 "$RL" start grok-review "$SPEC" 600   # use the caller's "TIMEOUT: <seconds>" value instead, if present
 ```
 
-Note the printed `PID:`, `WATCHDOG:`, `FINAL:`, and `LOG:` values. Repeat `"$RL" wait <PID>` until it prints `EXITED` — every slice as a normal FOREGROUND command, never backgrounded, never a "wait for a notification" you end your turn on (no notification re-wakes a finished agent; a detached CLI would keep running unsupervised). Then always `"$RL" reap <PID> <WATCHDOG>`. If your turn must instead end early while grok may still be running, reap first and report `STATUS: partial` with whatever landed. The `grok-review` lane runs without `--permission-mode acceptEdits` — a reviewer never edits files. If `LOG` shows the watchdog fired, report `STATUS: timeout` with whatever landed.
+Note the printed `PID:`, `WATCHDOG:`, `FINAL:`, and `LOG:` values. Repeat `"$RL" wait <PID>` until it prints `EXITED` — every slice as a normal FOREGROUND command, never backgrounded, never a "wait for a notification" you end your turn on (no notification re-wakes a finished agent; a detached CLI would keep running unsupervised). Then always `"$RL" reap <PID> <WATCHDOG>`. If your turn must instead end early while grok may still be running, reap first and report `STATUS: partial` with whatever landed. The `grok-review` lane is restricted by the supervisor to a read-only tool allowlist (`read_file`, `grep`, `list_dir` — no shell, no edit tools; enforced, unlike grok's permission modes) — a reviewer never edits files, and this one cannot. If `LOG` shows the watchdog fired, report `STATUS: timeout` with whatever landed.
 
 4. **Distill.** Read `"$FINAL"` (per batch, if the size guard split the diff). Keep each finding as severity + one-line claim + `file:line`. A finding grok didn't anchor to a `file:line` gets labeled `uncited` — pass it through flagged, never silently promote or drop it. Spot-check citations against the WORKING TREE (Read the cited line; citations are post-image, so they will usually not appear as literal numbers in the unified diff text — do not flag on that basis); a citation whose line doesn't exist or doesn't match the claim is itself worth flagging.
 
@@ -70,7 +70,7 @@ Note the printed `PID:`, `WATCHDOG:`, `FINAL:`, and `LOG:` values. Repeat `"$RL"
 ```
 GROK REVIEW REPORT
 STATUS: complete | partial | timeout | unavailable
-DIFF: [what was reviewed — ref or file, and its size in lines]
+DIFF: [what was reviewed — the resolved ref (full SHA or base..head), and its size in lines]
 FINDINGS: [severity | one-line claim | file:line — one per line; "none" if clean]
 UNCITED: [claims grok made without file:line anchors, or "none"]
 UNCOVERED: [files or hunks not reviewed (size guard), or "none"]

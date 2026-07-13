@@ -12,6 +12,14 @@
 #   reap <pid> [watchdog-pid]                      kill lane group + watchdog, cleanup
 # Env: LANE_CODEX_FAST=1 adds the fast service tier to codex lane launches
 # (~1.5x speed, ~2-2.5x credits; needs ChatGPT sign-in). Grok lanes ignore it.
+# The codex-review lane runs `codex exec review`, which derives the diff
+# itself from a ref named in the instructions (refs are immutable; diff files
+# race under parallel lanes). Its <spec-file> is the review instructions and
+# MUST name the target — e.g. "Review the changes introduced by commit <sha>."
+# — because the subcommand's --commit/--base flags are mutually exclusive
+# with custom instructions. codex exec review has no --cd flag: it reviews
+# the repo at this script's working directory, so invoke run-lane.sh from
+# the repo under review.
 #
 # Process-group discipline: `set -m` gives each background job its own process
 # group (PGID = PID), and every kill targets the GROUP (`kill -- -PID`) — the
@@ -35,26 +43,57 @@ start)
   if [ -z "$SECS" ]; then
     case "$LANE" in *-review|*-research) SECS=600 ;; *) SECS=1800 ;; esac
   fi
-  [ -r "$SPEC" ] || { echo "STATUS: unavailable"; echo "REASON: spec file not readable: $SPEC"; exit 1; }
+  [ -r "$SPEC" ] && [ -s "$SPEC" ] || { echo "STATUS: unavailable"; echo "REASON: spec file missing, unreadable, or empty: $SPEC"; exit 1; }
   FINAL=$(mktemp -t "${LANE}-final.XXXXXX")
   LOG=$(mktemp -t "${LANE}-log.XXXXXX")
   case "$LANE" in
-    codex|codex-review)
+    codex)
       command -v codex >/dev/null 2>&1 || { echo "STATUS: unavailable"; echo "REASON: codex not on PATH"; exit 1; }
-      SANDBOX=workspace-write
-      [ "$LANE" = codex-review ] && SANDBOX=read-only   # a reviewer never edits files
       FAST=""   # LANE_CODEX_FAST=1 opts into the fast service tier (~1.5x speed, ~2-2.5x credits; needs ChatGPT sign-in)
       [ "${LANE_CODEX_FAST:-}" = "1" ] && FAST="-c service_tier=fast -c features.fast_mode=true"
       codex exec --model "${MODEL:-gpt-5.6-sol}" -c model_reasoning_effort=high $FAST \
-        --sandbox "$SANDBOX" --skip-git-repo-check --cd "$(pwd)" \
+        --sandbox workspace-write --skip-git-repo-check --cd "$(pwd)" \
         --output-last-message "$FINAL" - < "$SPEC" > "$LOG" 2>&1 &
+      ;;
+    codex-review)
+      command -v codex >/dev/null 2>&1 || { echo "STATUS: unavailable"; echo "REASON: codex not on PATH"; exit 1; }
+      FAST=""
+      [ "${LANE_CODEX_FAST:-}" = "1" ] && FAST="-c service_tier=fast -c features.fast_mode=true"
+      # `codex exec review` derives the diff from the ref the instructions
+      # name — no diff file to clobber. sandbox_mode is pinned read-only
+      # (a reviewer never edits); --json makes LOG a machine-parseable JSONL
+      # event stream. Instructions pass as the positional PROMPT: the
+      # subcommand rejects stdin ('-') and its --commit/--base flags when
+      # custom instructions are present (verified on codex-cli 0.144.1).
+      codex exec review -m "${MODEL:-gpt-5.6-sol}" -c model_reasoning_effort=high $FAST \
+        -c 'sandbox_mode="read-only"' --json \
+        --output-last-message "$FINAL" "$(cat "$SPEC")" > "$LOG" 2>&1 &
       ;;
     grok|grok-review|grok-research)
       command -v grok >/dev/null 2>&1 || { echo "STATUS: unavailable"; echo "REASON: grok not on PATH"; exit 1; }
-      PERM=""
-      [ "$LANE" = grok ] && PERM="--permission-mode acceptEdits"   # reviewers/researchers get no edit permission
-      grok --prompt-file "$SPEC" -m "${MODEL:-grok-4.5}" $PERM \
-        --output-format plain --cwd "$(pwd)" > "$FINAL" 2>&1 &
+      GARGS=(--prompt-file "$SPEC" -m "${MODEL:-grok-4.5}" --output-format plain --cwd "$(pwd)")
+      case "$LANE" in
+        grok)
+          # acceptEdits is kept for forward-compat but is NOT enforcement on
+          # current CLIs (verified on 0.2.99: headless runs execute commands
+          # regardless of it). The deny rules below ARE enforced: no privilege
+          # escalation, no pushing, no ad-hoc network from an implementation
+          # lane. This is a deny-list, not confinement — grok's kernel sandbox
+          # does not restrict child processes on macOS today.
+          GARGS+=(--permission-mode acceptEdits
+                  --deny 'Bash(sudo*)' --deny 'Bash(git push*)'
+                  --deny 'Bash(curl*)' --deny 'Bash(wget*)') ;;
+        grok-review)
+          # Hard read-only via the tool allowlist (enforced; --sandbox and
+          # --permission-mode are not), minus the MCP bridge tools that
+          # bypass the allowlist.
+          GARGS+=(--tools 'read_file,grep,list_dir'
+                  --disallowed-tools 'use_tool,search_tool') ;;
+        grok-research)
+          # Researcher keeps web tools but loses shell and edit tools.
+          GARGS+=(--disallowed-tools 'run_terminal_cmd,search_replace,write') ;;
+      esac
+      grok "${GARGS[@]}" > "$FINAL" 2>&1 &
       LOG=$FINAL
       ;;
     *) echo "STATUS: unavailable"; echo "REASON: unknown lane '$LANE' (codex|grok|codex-review|grok-review|grok-research)"; exit 2 ;;

@@ -148,9 +148,10 @@ Model resolution order in Claude Code: `CLAUDE_CODE_SUBAGENT_MODEL` env var → 
 | Producer | Permissions | Consequence |
 |---|---|---|
 | codex (implementing) | `--sandbox workspace-write`, never `danger-full-access` | Writes code scoped to the working tree; runs commands inside the sandbox |
-| codex (reviewing) | `--sandbox read-only` | Cannot write at all |
-| grok (implementing) | `--permission-mode acceptEdits`, never `--always-approve` | Edits files without prompting but gets no blanket command approval — it often can't run your test suite, so for grok's diffs the wrapper usually ends up being the one authoritative verification run |
-| grok (research/review) | No edit permissions requested | Read-and-report only |
+| codex (reviewing) | `codex exec review` with `sandbox_mode` pinned read-only | Derives the diff from a ref itself (no diff file to race); cannot write at all |
+| grok (implementing) | Enforced `--deny` rules: no `sudo`, no `git push`, no `curl`/`wget`; never `--always-approve` | Edits files AND runs commands headlessly — grok's `--permission-mode` is not enforcement on current CLIs (verified on 0.2.99), so it runs your verification and commits its own work; the deny rules are a targeted deny-list, not confinement (grok's kernel sandbox does not restrict child processes on macOS today) |
+| grok (reviewing) | `--tools read_file,grep,list_dir` allowlist (enforced), MCP bridge tools disallowed | Hard read-only: no shell, no edit tools |
+| grok (research) | Shell and edit tools stripped via `--disallowed-tools` (enforced), web tools kept | Read-and-report only |
 | all CLI lanes (implement and review) | Launched detached under `scripts/run-lane.sh` (process-group kills, pure-bash watchdog — no coreutils needed) | Long runs survive the 10-minute foreground cap; the wall clock holds even if the supervising agent dies. `scripts/test-run-lane.sh` smoke-tests this without API calls |
 
 ## Use it
@@ -162,7 +163,7 @@ Add rate limiting to our public API. Design it, delegate the
 implementation, and verify the evidence before you call it done.
 ```
 
-The architect writes the five-part spec (objective, files, interfaces, constraints, verification — plus an honest `TIMEOUT:` estimate for long tasks), routes it per your mode, reads the diff and verification evidence when the report comes back, sends behavior-bearing diffs to the opposite-family cold reviewer, and only then reports done.
+The architect writes the six-part spec (objective, files, interfaces, constraints, verification, commit ownership — plus an honest `TIMEOUT:` estimate for long tasks), routes it per your mode, reads the diff, verification evidence, and commit hash when the report comes back, sends behavior-bearing diffs to the opposite-family cold reviewer by ref, and only then reports done.
 
 ### Without always-on (per-task trigger)
 
