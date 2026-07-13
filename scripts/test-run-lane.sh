@@ -59,19 +59,41 @@ if group_alive "$PID"; then fail "group survived the watchdog budget"; else pass
 grep -q "WATCHDOG: killed" "$LOG" && pass "watchdog kill recorded in LOG" || fail "no WATCHDOG line in LOG"
 "$RL" reap "$PID" "$WD" >/dev/null
 
-echo "test 4: review lane type launches read-only and reaps"
+echo "test 4: codex-review runs exec review with instruction prompt, read-only, and reaps"
+EMPTY=$(mktemp -t test-empty.XXXXXX)
+OUT=$("$RL" start codex-review "$EMPTY" 600 2>&1)
+grep -q 'STATUS: unavailable' <<< "$OUT" && pass "empty spec file fails loudly" || fail "lane launched with an empty spec: '$OUT'"
+SPECDIR=$(mktemp -d)
+OUT=$("$RL" start codex-review "$SPECDIR" 600 2>&1)
+grep -q 'STATUS: unavailable' <<< "$OUT" && pass "directory as spec fails loudly" || fail "lane launched with a directory spec: '$OUT'"
 launch 2 2 600 codex-review
 sleep 1
-grep -q 'read-only' "$SHIM/last-args" && pass "codex-review invoked with read-only sandbox" || fail "codex-review args lack read-only"
+grep -q 'exec review' "$SHIM/last-args" && pass "codex-review invokes the exec review subcommand" || fail "codex-review args lack 'exec review'"
+grep -qE -- '- $' "$SHIM/last-args" && pass "codex-review reads instructions from stdin via '-'" || fail "codex-review args lack the trailing '-' prompt: $(cat "$SHIM/last-args")"
+grep -q 'sandbox_mode="read-only"' "$SHIM/last-args" && pass "codex-review pins sandbox_mode read-only" || fail "codex-review args lack read-only sandbox_mode"
+grep -q -- '--json' "$SHIM/last-args" && pass "codex-review emits JSONL events" || fail "codex-review args lack --json"
 R=$("$RL" wait "$PID" 30)
 [ "$R" = EXITED ] && pass "codex-review lane ran and exited" || fail "codex-review wait printed '$R'"
 "$RL" reap "$PID" "$WD" >/dev/null
 group_alive "$PID" && fail "codex-review group survived reap" || pass "codex-review group reaped"
 
-echo "test 5: research lane gets no edit permission and reaps"
+echo "test 5: grok lanes carry enforced guardrails per lane type"
+launch 2 2 600 grok
+sleep 1
+grep -q 'Bash(sudo\*)' "$SHIM/last-args" && grep -q 'Bash(git push\*)' "$SHIM/last-args" \
+  && pass "grok implement lane carries deny rules" || fail "grok implement lane missing deny rules: $(cat "$SHIM/last-args")"
+"$RL" reap "$PID" "$WD" >/dev/null
+launch 2 2 600 grok-review
+sleep 1
+grep -q -- '--tools read_file,grep,list_dir' "$SHIM/last-args" && pass "grok-review restricted to read-only tool allowlist" || fail "grok-review args lack the tool allowlist"
+grep -q 'acceptEdits' "$SHIM/last-args" && fail "grok-review args contain acceptEdits" || pass "grok-review invoked without acceptEdits"
+"$RL" reap "$PID" "$WD" >/dev/null
 launch 2 2 600 grok-research
 sleep 1
 grep -q 'acceptEdits' "$SHIM/last-args" && fail "grok-research args contain acceptEdits" || pass "grok-research invoked without acceptEdits"
+grep -q -- '--tools web_search,open_page,open_page_with_find,x_user_search,x_semantic_search,x_keyword_search,x_thread_fetch,read_file,list_dir,grep' "$SHIM/last-args" \
+  && grep -q -- '--disallowed-tools use_tool,search_tool' "$SHIM/last-args" \
+  && pass "grok-research restricted to web+read allowlist, MCP bridge disallowed" || fail "grok-research restriction args wrong: $(cat "$SHIM/last-args")"
 R=$("$RL" wait "$PID" 30)
 [ "$R" = EXITED ] && pass "grok-research lane ran and exited" || fail "grok-research wait printed '$R'"
 "$RL" reap "$PID" "$WD" >/dev/null
