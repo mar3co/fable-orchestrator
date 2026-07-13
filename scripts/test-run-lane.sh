@@ -63,6 +63,9 @@ echo "test 4: codex-review runs exec review with instruction prompt, read-only, 
 EMPTY=$(mktemp -t test-empty.XXXXXX)
 OUT=$("$RL" start codex-review "$EMPTY" 600 2>&1)
 grep -q 'STATUS: unavailable' <<< "$OUT" && pass "empty spec file fails loudly" || fail "lane launched with an empty spec: '$OUT'"
+SPECDIR=$(mktemp -d)
+OUT=$("$RL" start codex-review "$SPECDIR" 600 2>&1)
+grep -q 'STATUS: unavailable' <<< "$OUT" && pass "directory as spec fails loudly" || fail "lane launched with a directory spec: '$OUT'"
 launch 2 2 600 codex-review
 sleep 1
 grep -q 'exec review' "$SHIM/last-args" && pass "codex-review invokes the exec review subcommand" || fail "codex-review args lack 'exec review'"
@@ -88,7 +91,7 @@ grep -q 'acceptEdits' "$SHIM/last-args" && fail "grok-review args contain accept
 launch 2 2 600 grok-research
 sleep 1
 grep -q 'acceptEdits' "$SHIM/last-args" && fail "grok-research args contain acceptEdits" || pass "grok-research invoked without acceptEdits"
-grep -q -- '--disallowed-tools run_terminal_cmd' "$SHIM/last-args" && pass "grok-research loses shell and edit tools" || fail "grok-research args lack disallowed-tools"
+grep -q -- '--disallowed-tools run_terminal_cmd,search_replace,write,use_tool,search_tool' "$SHIM/last-args" && pass "grok-research loses shell, edit, and MCP bridge tools" || fail "grok-research disallowed-tools list incomplete: $(cat "$SHIM/last-args")"
 R=$("$RL" wait "$PID" 30)
 [ "$R" = EXITED ] && pass "grok-research lane ran and exited" || fail "grok-research wait printed '$R'"
 "$RL" reap "$PID" "$WD" >/dev/null

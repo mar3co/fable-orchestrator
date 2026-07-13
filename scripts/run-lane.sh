@@ -43,7 +43,7 @@ start)
   if [ -z "$SECS" ]; then
     case "$LANE" in *-review|*-research) SECS=600 ;; *) SECS=1800 ;; esac
   fi
-  [ -r "$SPEC" ] && [ -s "$SPEC" ] || { echo "STATUS: unavailable"; echo "REASON: spec file missing, unreadable, or empty: $SPEC"; exit 1; }
+  [ -f "$SPEC" ] && [ -r "$SPEC" ] && [ -s "$SPEC" ] || { echo "STATUS: unavailable"; echo "REASON: spec file missing, not a regular file, unreadable, or empty: $SPEC"; exit 1; }
   FINAL=$(mktemp -t "${LANE}-final.XXXXXX")
   LOG=$(mktemp -t "${LANE}-log.XXXXXX")
   case "$LANE" in
@@ -60,14 +60,18 @@ start)
       FAST=""
       [ "${LANE_CODEX_FAST:-}" = "1" ] && FAST="-c service_tier=fast -c features.fast_mode=true"
       # `codex exec review` derives the diff from the ref the instructions
-      # name — no diff file to clobber. sandbox_mode is pinned read-only
-      # (a reviewer never edits); --json makes LOG a machine-parseable JSONL
-      # event stream. Instructions pass as the positional PROMPT: the
-      # subcommand rejects stdin ('-') and its --commit/--base flags when
-      # custom instructions are present (verified on codex-cli 0.144.1).
+      # name — no diff file to clobber. sandbox_mode is pinned read-only via
+      # the documented config key (the subcommand has no --sandbox flag;
+      # key honored on codex-cli 0.144.1 — an unknown -c key would be
+      # silently dropped, so re-verify on CLI upgrades); --json makes LOG a
+      # machine-parseable JSONL event stream. Instructions pass as the
+      # positional PROMPT after `--`: the subcommand rejects stdin ('-') and
+      # its --commit/--base flags when custom instructions are present.
+      PROMPT_TEXT=$(cat "$SPEC" 2>/dev/null)
+      [ -n "$PROMPT_TEXT" ] || { echo "STATUS: unavailable"; echo "REASON: spec file unreadable or empty at launch: $SPEC"; exit 1; }
       codex exec review -m "${MODEL:-gpt-5.6-sol}" -c model_reasoning_effort=high $FAST \
         -c 'sandbox_mode="read-only"' --json \
-        --output-last-message "$FINAL" "$(cat "$SPEC")" > "$LOG" 2>&1 &
+        --output-last-message "$FINAL" -- "$PROMPT_TEXT" > "$LOG" 2>&1 &
       ;;
     grok|grok-review|grok-research)
       command -v grok >/dev/null 2>&1 || { echo "STATUS: unavailable"; echo "REASON: grok not on PATH"; exit 1; }
@@ -90,8 +94,10 @@ start)
           GARGS+=(--tools 'read_file,grep,list_dir'
                   --disallowed-tools 'use_tool,search_tool') ;;
         grok-research)
-          # Researcher keeps web tools but loses shell and edit tools.
-          GARGS+=(--disallowed-tools 'run_terminal_cmd,search_replace,write') ;;
+          # Researcher keeps web tools but loses shell and edit tools — and
+          # the MCP bridge tools, which could otherwise reach the denied
+          # tools from the side.
+          GARGS+=(--disallowed-tools 'run_terminal_cmd,search_replace,write,use_tool,search_tool') ;;
       esac
       grok "${GARGS[@]}" > "$FINAL" 2>&1 &
       LOG=$FINAL
