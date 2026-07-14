@@ -153,10 +153,11 @@ wait)
   # Harness auto-backgrounds foreground tool calls after ~2 minutes; a
   # backgrounded slice detaches the wrapper's supervision (lost wakeup), so
   # slices stay at <=90s with margin under that threshold. Capping silently
-  # is safe: wait is always called in a loop — slice length is efficiency only.
+  # (invalid, overflowing, or large values) is safe: wait is always called in
+  # a loop — slice length is efficiency only.
   PID=${1:?usage: run-lane.sh wait <pid> [slice-secs]}
   SLICE=${2:-90}
-  [ "$SLICE" -gt 90 ] && SLICE=90
+  [ "$SLICE" -le 90 ] 2>/dev/null || SLICE=90
   i=0
   while [ "$i" -lt "$((SLICE / 5))" ] && kill -0 "$PID" 2>/dev/null; do
     sleep 5
