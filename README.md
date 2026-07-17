@@ -121,7 +121,7 @@ Absent or `off` means off. When on, both codex lanes — implementer and reviewe
 
 ## Implementer Benchmarks
 
-One observed benchmark (July 2026), for flavor rather than proof — and a deliberate one-off exception to the "never race" rule above, which exists precisely because duplicate implementations are waste in real work: the same two fully spec-determined tasks — a token-bucket rate limiter and a TTL LRU cache, each with a unit-test suite — were dispatched simultaneously to all three lanes with identical six-part specs, each lane in its own isolated git repo. Time runs from dispatch to the lane's commit timestamp, so the CLI lanes' numbers include their wrapper's preflight and settlement — the latency you actually pay when delegating. Every run passed its full test suite under an independent re-run; no lane broke a spec constraint.
+One observed benchmark (July 2026), for flavor rather than proof — and a deliberate one-off exception to the "never race" rule above, which exists precisely because duplicate implementations are waste in real work: the same two fully spec-determined tasks — a token-bucket rate limiter and a TTL LRU cache, each with a unit-test suite — were dispatched simultaneously to all four lanes with identical six-part specs, each lane in its own isolated git repo. Time runs from dispatch to the lane's commit timestamp, so the CLI lanes' numbers include their wrapper's preflight and settlement — the latency you actually pay when delegating. Every run passed its full test suite under an independent re-run; no lane broke a spec constraint.
 
 | Task | 🥇 Grok 4.5 | 🥈 Claude Opus 4.8 (fallback lane) | 🥉 GPT-5.6 Sol (fast tier) | GPT-5.6 Sol (standard tier) |
 |---|---|---|---|---|
